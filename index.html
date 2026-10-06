@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bowls Club Chippy Orders</title>
+  <style>
+    :root {
+      --primary: #1b4d3e;
+      --secondary: #c8963e;
+      --bg: #f4f6f8;
+      --card-bg: #ffffff;
+      --text: #222222;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); margin: 0; padding: 12px; font-size: 16px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    header { background: var(--primary); color: white; padding: 16px; border-radius: 12px; text-align: center; margin-bottom: 12px; }
+    header h1 { margin: 0; font-size: 1.4rem; }
+    header p { margin: 4px 0 0 0; opacity: 0.85; font-size: 0.9rem; }
+    
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 12px 8px; border: none; background: #e0e0e0; color: #444; font-weight: bold; font-size: 0.95rem; border-radius: 8px; cursor: pointer; }
+    .tab-btn.active { background: var(--primary); color: white; }
+    
+    .view-card { background: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .input-group { margin-bottom: 14px; }
+    label { display: block; font-weight: bold; margin-bottom: 6px; }
+    input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
+    
+    .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
+    .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
+    .item-price { color: var(--primary); }
+    .item-options { margin-top: 8px; }
+    .item-options select, .item-options input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 4px; font-size: 0.95rem; }
+    
+    .qty-controls { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+    .qty-btn { width: 36px; height: 36px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
+    .qty-btn:active { background: #bbb; }
+    .qty-val { font-weight: bold; font-size: 1.1rem; width: 24px; text-align: center; }
+    
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; margin-top: 8px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: var(--secondary); color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-success { background: #16a34a; color: white; }
+    
+    .order-card { border-left: 5px solid #cbd5e1; padding: 12px; margin-bottom: 10px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .order-card.paid { border-left-color: #16a34a; }
+    .order-card.unpaid { border-left-color: #dc2626; }
+    .order-card.handed-out { opacity: 0.6; background: #f0f0f0; }
+    
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; }
+    .badge-paid { background: #dcfce7; color: #15803d; }
+    .badge-unpaid { background: #fee2e2; color: #b91c1c; }
+    
+    .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 12px; font-size: 0.9rem; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Bowls Club Chippy Orders</h1>
+    <p>Friday Night Order Manager</p>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('order')">Place Order</button>
+    <button class="tab-btn" onclick="switchTab('organizer')">Organizer View</button>
+  </div>
+
+  <!-- ORDER FORM VIEW -->
+  <div id="view-order" class="view-card">
+    <div class="input-group">
+      <label for="customerName">Your Name(s):</label>
+      <input type="text" id="customerName" placeholder="e.g. Dave & Sarah">
+    </div>
+
+    <h3>Menu Items</h3>
+    <div id="menu-container"></div>
+
+    <div class="input-group" style="margin-top: 16px;">
+      <label for="specialNotes">Special Requests / Notes:</label>
+      <input type="text" id="specialNotes" placeholder="e.g. No salt & vinegar on Dave's chips">
+    </div>
+
+    <div style="font-size: 1.3rem; font-weight: bold; margin: 16px 0; text-align: right;">
+      Total: £<span id="order-total">0.00</span>
+    </div>
+
+    <button class="btn btn-primary" onclick="submitOrder()">Submit Order</button>
+  </div>
+
+  <!-- ORGANIZER VIEW -->
+  <div id="view-organizer" class="view-card hidden">
+    <h2>Organizer Dashboard</h2>
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <button class="btn btn-secondary" onclick="generateSummary()">Generate Chippy Summary</button>
+    </div>
+
+    <div id="chippy-summary-container" class="hidden">
+      <h3>Collated Chippy Order</h3>
+      <div id="chippy-summary-text" class="summary-box"></div>
+      <button class="btn btn-success" onclick="copySummary()">Copy for WhatsApp / SMS</button>
+    </div>
+
+    <hr style="margin: 20px 0;">
+
+    <h3>Orders Received</h3>
+    <div id="orders-list">Loading orders...</div>
+
+    <hr style="margin: 20px 0;">
+
+    <button class="btn btn-danger" onclick="archiveSession()">End Friday Session (Clear All)</button>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC4Ysq0-OMJZyNZfaO8a612vjMzQ86Oz5Y",
+    authDomain: "bowls-chippy-orders.firebaseapp.com",
+    databaseURL: "https://bowls-chippy-orders-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "bowls-chippy-orders",
+    storageBucket: "bowls-chippy-orders.firebasestorage.app",
+    messagingSenderId: "80890299075",
+    appId: "1:80890299075:web:67806a379254fe7054d876"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const ordersRef = ref(db, "orders");
+
+  // Menu Definition based on Fish Station Menu
+  const menu = [
+    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50 },
+    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'] },
+    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'] },
+    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00 },
+    { id: 'cheeseburger_chips', name: '1½ Cheese Burger & Chips', price: 7.30 },
+    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00 },
+    { id: 'scampi_chips', name: 'Scampi & Chips', price: 9.50 },
+    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00 },
+    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00 },
+    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00 }
+  ];
+
+  let cart = {};
+  let currentOrders = {};
+
+  function renderMenu() {
+    const container = document.getElementById('menu-container');
+    container.innerHTML = '';
+
+    menu.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'menu-item';
+      
+      let variantSelect = '';
+      if (item.variants) {
+        variantSelect = `
+          <div class="item-options">
+            <select id="variant-${item.id}" onchange="window.updateVariant('${item.id}', this.value)">
+              ${item.variants.map(v => `<option value="${v}">${v}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }
+
+      itemEl.innerHTML = `
+        <div class="item-header">
+          <span>${item.name}</span>
+          <span class="item-price">£${item.price.toFixed(2)}</span>
+        </div>
+        ${variantSelect}
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="window.changeQty('${item.id}', -1)">-</button>
+          <span class="qty-val" id="qty-${item.id}">0</span>
+          <button class="qty-btn" onclick="window.changeQty('${item.id}', 1)">+</button>
+        </div>
+      `;
+      container.appendChild(itemEl);
+      
+      // Initialize variant default
+      if (item.variants) {
+        if (!cart[item.id]) cart[item.id] = { qty: 0, variant: item.variants[0] };
+      } else {
+        if (!cart[item.id]) cart[item.id] = { qty: 0 };
+      }
+    });
+  }
+
+  window.changeQty = function(id, delta) {
+    if (!cart[id]) cart[id] = { qty: 0 };
+    cart[id].qty = Math.max(0, cart[id].qty + delta);
+    document.getElementById(`qty-${id}`).innerText = cart[id].qty;
+    calculateTotal();
+  };
+
+  window.updateVariant = function(id, val) {
+    if (!cart[id]) cart[id] = { qty: 0 };
+    cart[id].variant = val;
+  };
+
+  function calculateTotal() {
+    let total = 0;
+    menu.forEach(item => {
+      if (cart[item.id] && cart[item.id].qty > 0) {
+        total += cart[item.id].qty * item.price;
+      }
+    });
+    document.getElementById('order-total').innerText = total.toFixed(2);
+    return total;
+  }
+
+  window.submitOrder = function() {
+    const name = document.getElementById('customerName').value.trim();
+    if (!name) {
+      alert('Please enter a name for the order!');
+      return;
+    }
+
+    const items = [];
+    menu.forEach(item => {
+      if (cart[item.id] && cart[item.id].qty > 0) {
+        items.push({
+          id: item.id,
+          name: item.name,
+          qty: cart[item.id].qty,
+          price: item.price,
+          variant: cart[item.id].variant || null
+        });
+      }
+    });
+
+    if (items.length === 0) {
+      alert('Please select at least one item!');
+      return;
+    }
+
+    const total = calculateTotal();
+    const notes = document.getElementById('specialNotes').value.trim();
+
+    const orderData = {
+      customerName: name,
+      items: items,
+      total: total,
+      notes: notes,
+      status: 'unpaid',
+      handedOut: false,
+      timestamp: Date.now()
+    };
+
+    push(ordersRef, orderData).then(() => {
+      alert(`Order submitted for ${name}! Please see the organizer to pay £${total.toFixed(2)}.`);
+      // Reset form
+      document.getElementById('customerName').value = '';
+      document.getElementById('specialNotes').value = '';
+      cart = {};
+      renderMenu();
+      calculateTotal();
+    });
+  };
+
+  // Sync Realtime Database with Organizer View
+  onValue(ordersRef, (snapshot) => {
+    currentOrders = snapshot.val() || {};
+    renderOrganizerView();
+  });
+
+  function renderOrganizerView() {
+    const container = document.getElementById('orders-list');
+    container.innerHTML = '';
+
+    const keys = Object.keys(currentOrders);
+    if (keys.length === 0) {
+      container.innerHTML = '<p>No orders submitted yet.</p>';
+      return;
+    }
+
+    keys.forEach(key => {
+      const order = currentOrders[key];
+      const card = document.createElement('div');
+      card.className = `order-card ${order.status} ${order.handedOut ? 'handed-out' : ''}`;
+
+      const itemsSummary = order.items.map(i => `${i.qty}x ${i.name}${i.variant ? ' (' + i.variant + ')' : ''}`).join('<br>');
+      
+      card.innerHTML = `
+        <div>
+          <span class="badge ${order.status === 'paid' ? 'badge-paid' : 'badge-unpaid'}">${order.status}</span>
+          ${order.handedOut ? '<span class="badge" style="background:#e2e8f0; color:#475569;">HANDED OUT</span>' : ''}
+          <strong style="font-size: 1.1rem; display: block;">${order.customerName} - £${order.total.toFixed(2)}</strong>
+        </div>
+        <div style="margin: 8px 0; font-size: 0.95rem;">${itemsSummary}</div>
+        ${order.notes ? `<div style="font-size: 0.85rem; color: #d97706; font-style: italic;">Note: ${order.notes}</div>` : ''}
+        <div style="margin-top: 10px; display: flex; gap: 6px;">
+          ${order.status === 'unpaid' ? `<button class="btn btn-success" style="padding:6px; font-size:0.85rem;" onclick="window.markPaid('${key}')">Mark Paid</button>` : ''}
+          <button class="btn btn-secondary" style="padding:6px; font-size:0.85rem;" onclick="window.toggleHandout('${key}', ${!order.handedOut})">
+            ${order.handedOut ? 'Unmark Handout' : 'Mark Handed Out'}
+          </button>
+          <button class="btn btn-danger" style="padding:6px; font-size:0.85rem;" onclick="window.deleteOrder('${key}')">Delete</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  window.markPaid = function(key) {
+    update(ref(db, `orders/${key}`), { status: 'paid' });
+  };
+
+  window.toggleHandout = function(key, val) {
+    update(ref(db, `orders/${key}`), { handedOut: val });
+  };
+
+  window.deleteOrder = function(key) {
+    if (confirm('Delete this order?')) {
+      remove(ref(db, `orders/${key}`));
+    }
+  };
+
+  window.generateSummary = function() {
+    const keys = Object.keys(currentOrders);
+    if (keys.length === 0) {
+      alert('No orders to summarize!');
+      return;
+    }
+
+    const unpaidNames = [];
+    const totals = {};
+
+    keys.forEach(key => {
+      const order = currentOrders[key];
+      if (order.status === 'unpaid') {
+        unpaidNames.push(order.customerName);
+      }
+      order.items.forEach(item => {
+        const itemLabel = `${item.name}${item.variant ? ' (' + item.variant + ')' : ''}`;
+        totals[itemLabel] = (totals[itemLabel] || 0) + item.qty;
+      });
+    });
+
+    if (unpaidNames.length > 0) {
+      alert(`⚠️️ Warning: There are ${unpaidNames.length} unpaid order(s) for: ${unpaidNames.join(', ')}.`);
+    }
+
+    let summaryText = `*BOWLS CLUB CHIPPY ORDER*\n------------------------\n`;
+    Object.keys(totals).forEach(label => {
+      summaryText += `${totals[label]}x ${label}\n`;
+    });
+    summaryText += `------------------------\nTotal Orders: ${keys.length}`;
+
+    document.getElementById('chippy-summary-text').innerText = summaryText;
+    document.getElementById('chippy-summary-container').classList.remove('hidden');
+  };
+
+  window.copySummary = function() {
+    const text = document.getElementById('chippy-summary-text').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Chippy summary copied to clipboard!');
+    });
+  };
+
+  window.archiveSession = function() {
+    if (confirm('Are you sure you want to clear ALL orders for this session? This cannot be undone.')) {
+      remove(ordersRef);
+      document.getElementById('chippy-summary-container').classList.add('hidden');
+    }
+  };
+
+  window.switchTab = function(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (tab === 'order') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('view-order').classList.remove('hidden');
+      document.getElementById('view-organizer').classList.add('hidden');
+    } else {
+      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      document.getElementById('view-order').classList.add('hidden');
+      document.getElementById('view-organizer').classList.remove('hidden');
+    }
+  };
+
+  // Initial setup
+  renderMenu();
+</script>
+
+</body>
+</html>
