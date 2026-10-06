@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bowls Club Chippy Orders</title>
+  <!-- jsPDF Library for Automated PDF Exports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
       --primary: #1b4d3e;
@@ -31,31 +33,43 @@
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
     .item-price { color: var(--primary); }
-    .item-options { margin-top: 8px; }
-    .item-options select, .item-options input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 4px; font-size: 0.95rem; }
+    .item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; background: #fff; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; }
+    .item-row select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; flex: 1; }
     
-    .qty-controls { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-    .qty-btn { width: 36px; height: 36px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
+    .qty-controls { display: flex; align-items: center; gap: 8px; }
+    .qty-btn { width: 34px; height: 34px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
     .qty-btn:active { background: #bbb; }
-    .qty-val { font-weight: bold; font-size: 1.1rem; width: 24px; text-align: center; }
-    
+    .qty-val { font-weight: bold; font-size: 1.05rem; width: 20px; text-align: center; }
+    .add-row-btn { font-size: 0.85rem; background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; color: var(--primary); cursor: pointer; margin-top: 6px; display: inline-block; }
+    .remove-row-btn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+
     .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; margin-top: 8px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-secondary { background: var(--secondary); color: white; }
     .btn-danger { background: #dc2626; color: white; }
     .btn-success { background: #16a34a; color: white; }
+    .btn-warning { background: #d97706; color: white; }
     
+    .stats-card { display: flex; gap: 8px; text-align: center; margin-bottom: 16px; }
+    .stat-box { flex: 1; background: #f1f5f9; padding: 10px 4px; border-radius: 8px; border: 1px solid #cbd5e1; }
+    .stat-box span { display: block; font-size: 0.75rem; color: #475569; font-weight: bold; text-transform: uppercase; }
+    .stat-box strong { font-size: 1.1rem; color: var(--primary); }
+
     .order-card { border-left: 5px solid #cbd5e1; padding: 12px; margin-bottom: 10px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .order-card.paid { border-left-color: #16a34a; }
     .order-card.unpaid { border-left-color: #dc2626; }
+    .order-card.refund_due { border-left-color: #d97706; }
     .order-card.handed-out { opacity: 0.6; background: #f0f0f0; }
     
     .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; }
     .badge-paid { background: #dcfce7; color: #15803d; }
     .badge-unpaid { background: #fee2e2; color: #b91c1c; }
+    .badge-refund { background: #fef3c7; color: #b45309; }
     
     .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 12px; font-size: 0.9rem; }
     .hidden { display: none !important; }
+    footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #666; }
+    footer a { color: #888; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -67,8 +81,8 @@
   </header>
 
   <div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('order')">Place Order</button>
-    <button class="tab-btn" onclick="switchTab('organizer')">Organizer View</button>
+    <button id="btn-tab-order" class="tab-btn active" onclick="switchTab('order')">Place Order</button>
+    <button id="btn-tab-organizer" class="tab-btn hidden" onclick="switchTab('organizer')">Organizer View</button>
   </div>
 
   <!-- ORDER FORM VIEW -->
@@ -96,6 +110,13 @@
   <!-- ORGANIZER VIEW -->
   <div id="view-organizer" class="view-card hidden">
     <h2>Organizer Dashboard</h2>
+
+    <div class="stats-card">
+      <div class="stat-box"><span>Collected</span><strong id="stat-collected">£0.00</strong></div>
+      <div class="stat-box"><span>Unpaid</span><strong id="stat-unpaid" style="color:#dc2626;">£0.00</strong></div>
+      <div class="stat-box"><span>Night Total</span><strong id="stat-total">£0.00</strong></div>
+    </div>
+
     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
       <button class="btn btn-secondary" onclick="generateSummary()">Generate Chippy Summary</button>
     </div>
@@ -113,8 +134,12 @@
 
     <hr style="margin: 20px 0;">
 
-    <button class="btn btn-danger" onclick="archiveSession()">End Friday Session (Clear All)</button>
+    <button class="btn btn-danger" onclick="endFridaySession()">End Friday Session & Clear Database</button>
   </div>
+
+  <footer>
+    <span id="organizer-login-link"><a href="#" onclick="promptOrganizerPassword(event)">Organizer Access</a></span>
+  </footer>
 </div>
 
 <!-- Firebase SDKs -->
@@ -132,12 +157,14 @@
     appId: "1:80890299075:web:67806a379254fe7054d876"
   };
 
+  const ORGANIZER_PIN = "1234";
+
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const ordersRef = ref(db, "orders");
 
-  // Menu Definition based on Fish Station Menu
-  const menu = [
+  // Base Menu Config
+  const menuConfig = [
     { id: 'fish_chips', name: 'Fish & Chips', price: 9.50 },
     { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'] },
     { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'] },
@@ -150,69 +177,103 @@
     { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00 }
   ];
 
-  let cart = {};
+  // Dynamic Form State
+  let formState = {};
   let currentOrders = {};
+  let editingOrderMeta = null;
+
+  function initFormState() {
+    formState = {};
+    menuConfig.forEach(item => {
+      if (item.variants) {
+        formState[item.id] = [{ variant: item.variants[0], qty: 0 }];
+      } else {
+        formState[item.id] = [{ qty: 0 }];
+      }
+    });
+  }
 
   function renderMenu() {
     const container = document.getElementById('menu-container');
     container.innerHTML = '';
 
-    menu.forEach(item => {
+    menuConfig.forEach(item => {
       const itemEl = document.createElement('div');
       itemEl.className = 'menu-item';
-      
-      let variantSelect = '';
-      if (item.variants) {
-        variantSelect = `
-          <div class="item-options">
-            <select id="variant-${item.id}" onchange="window.updateVariant('${item.id}', this.value)">
-              ${item.variants.map(v => `<option value="${v}">${v}</option>`).join('')}
+
+      let rowsHtml = '';
+      formState[item.id].forEach((row, idx) => {
+        let variantSelect = '';
+        if (item.variants) {
+          variantSelect = `
+            <select onchange="window.updateVariant('${item.id}', ${idx}, this.value)">
+              ${item.variants.map(v => `<option value="${v}" ${row.variant === v ? 'selected' : ''}>${v}</option>`).join('')}
             </select>
+          `;
+        }
+
+        const removeBtn = (item.variants && formState[item.id].length > 1) 
+          ? `<button class="remove-row-btn" onclick="window.removeVariantRow('${item.id}', ${idx})">✕</button>` 
+          : '';
+
+        rowsHtml += `
+          <div class="item-row">
+            ${variantSelect}
+            <div class="qty-controls">
+              <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, -1)">-</button>
+              <span class="qty-val">${row.qty}</span>
+              <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, 1)">+</button>
+            </div>
+            ${removeBtn}
           </div>
         `;
-      }
+      });
+
+      const addRowBtn = item.variants 
+        ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another Variant</button>` 
+        : '';
 
       itemEl.innerHTML = `
         <div class="item-header">
           <span>${item.name}</span>
           <span class="item-price">£${item.price.toFixed(2)}</span>
         </div>
-        ${variantSelect}
-        <div class="qty-controls">
-          <button class="qty-btn" onclick="window.changeQty('${item.id}', -1)">-</button>
-          <span class="qty-val" id="qty-${item.id}">0</span>
-          <button class="qty-btn" onclick="window.changeQty('${item.id}', 1)">+</button>
-        </div>
+        ${rowsHtml}
+        ${addRowBtn}
       `;
       container.appendChild(itemEl);
-      
-      // Initialize variant default
-      if (item.variants) {
-        if (!cart[item.id]) cart[item.id] = { qty: 0, variant: item.variants[0] };
-      } else {
-        if (!cart[item.id]) cart[item.id] = { qty: 0 };
-      }
     });
   }
 
-  window.changeQty = function(id, delta) {
-    if (!cart[id]) cart[id] = { qty: 0 };
-    cart[id].qty = Math.max(0, cart[id].qty + delta);
-    document.getElementById(`qty-${id}`).innerText = cart[id].qty;
+  window.changeQty = function(itemId, rowIdx, delta) {
+    formState[itemId][rowIdx].qty = Math.max(0, formState[itemId][rowIdx].qty + delta);
+    renderMenu();
     calculateTotal();
   };
 
-  window.updateVariant = function(id, val) {
-    if (!cart[id]) cart[id] = { qty: 0 };
-    cart[id].variant = val;
+  window.updateVariant = function(itemId, rowIdx, val) {
+    formState[itemId][rowIdx].variant = val;
+  };
+
+  window.addVariantRow = function(itemId) {
+    const item = menuConfig.find(m => m.id === itemId);
+    formState[itemId].push({ variant: item.variants[0], qty: 1 });
+    renderMenu();
+    calculateTotal();
+  };
+
+  window.removeVariantRow = function(itemId, rowIdx) {
+    formState[itemId].splice(rowIdx, 1);
+    renderMenu();
+    calculateTotal();
   };
 
   function calculateTotal() {
     let total = 0;
-    menu.forEach(item => {
-      if (cart[item.id] && cart[item.id].qty > 0) {
-        total += cart[item.id].qty * item.price;
-      }
+    menuConfig.forEach(item => {
+      formState[item.id].forEach(row => {
+        if (row.qty > 0) total += row.qty * item.price;
+      });
     });
     document.getElementById('order-total').innerText = total.toFixed(2);
     return total;
@@ -220,54 +281,76 @@
 
   window.submitOrder = function() {
     const name = document.getElementById('customerName').value.trim();
-    if (!name) {
-      alert('Please enter a name for the order!');
-      return;
-    }
+    if (!name) { alert('Please enter a name for the order!'); return; }
 
     const items = [];
-    menu.forEach(item => {
-      if (cart[item.id] && cart[item.id].qty > 0) {
-        items.push({
-          id: item.id,
-          name: item.name,
-          qty: cart[item.id].qty,
-          price: item.price,
-          variant: cart[item.id].variant || null
-        });
-      }
+    menuConfig.forEach(item => {
+      formState[item.id].forEach(row => {
+        if (row.qty > 0) {
+          items.push({
+            id: item.id,
+            name: item.name,
+            qty: row.qty,
+            price: item.price,
+            variant: row.variant || null
+          });
+        }
+      });
     });
 
-    if (items.length === 0) {
-      alert('Please select at least one item!');
-      return;
-    }
+    if (items.length === 0) { alert('Please select at least one item!'); return; }
 
     const total = calculateTotal();
     const notes = document.getElementById('specialNotes').value.trim();
+
+    let finalStatus = 'unpaid';
+    if (editingOrderMeta && editingOrderMeta.originalStatus === 'paid') {
+      if (total > editingOrderMeta.originalTotal) {
+        const diff = total - editingOrderMeta.originalTotal;
+        alert(`Notice: Order total increased by £${diff.toFixed(2)}. Status set to UNPAID until additional balance is collected.`);
+        finalStatus = 'unpaid';
+      } else if (total < editingOrderMeta.originalTotal) {
+        const diff = editingOrderMeta.originalTotal - total;
+        alert(`Notice: Order total reduced. Status set to REFUND DUE (£${diff.toFixed(2)} refund owed to customer).`);
+        finalStatus = 'refund_due';
+      } else {
+        finalStatus = 'paid';
+      }
+    }
 
     const orderData = {
       customerName: name,
       items: items,
       total: total,
       notes: notes,
-      status: 'unpaid',
+      status: finalStatus,
+      refundAmount: (finalStatus === 'refund_due') ? (editingOrderMeta.originalTotal - total) : 0,
       handedOut: false,
       timestamp: Date.now()
     };
 
     push(ordersRef, orderData).then(() => {
-      alert(`Order submitted for ${name}! Please see the organizer to pay £${total.toFixed(2)}.`);
-      // Reset form
+      alert(`Order submitted for ${name}! Please see the organizer to pay £${total.toFixed(2)}.\n\n(If you need to edit or change your order, please speak to the organizer.)`);
       document.getElementById('customerName').value = '';
       document.getElementById('specialNotes').value = '';
-      cart = {};
+      initFormState();
+      editingOrderMeta = null;
       renderMenu();
       calculateTotal();
     });
   };
 
-  // Sync Realtime Database with Organizer View
+  window.promptOrganizerPassword = function(e) {
+    e.preventDefault();
+    const pwd = prompt("Enter Organizer PIN:");
+    if (pwd === ORGANIZER_PIN) {
+      document.getElementById('btn-tab-organizer').classList.remove('hidden');
+      document.getElementById('organizer-login-link').classList.add('hidden');
+      switchTab('organizer');
+      alert('Organizer mode unlocked!');
+    } else if (pwd !== null) { alert('Incorrect PIN!'); }
+  };
+
   onValue(ordersRef, (snapshot) => {
     currentOrders = snapshot.val() || {};
     renderOrganizerView();
@@ -278,82 +361,129 @@
     container.innerHTML = '';
 
     const keys = Object.keys(currentOrders);
+    let totalCollected = 0;
+    let totalUnpaid = 0;
+    let nightTotal = 0;
+
     if (keys.length === 0) {
       container.innerHTML = '<p>No orders submitted yet.</p>';
+      updateStats(0, 0, 0);
       return;
     }
 
     keys.forEach(key => {
       const order = currentOrders[key];
+      nightTotal += order.total;
+
+      if (order.status === 'paid') totalCollected += order.total;
+      else if (order.status === 'unpaid') totalUnpaid += order.total;
+      else if (order.status === 'refund_due') totalCollected += order.total;
+
       const card = document.createElement('div');
       card.className = `order-card ${order.status} ${order.handedOut ? 'handed-out' : ''}`;
 
       const itemsSummary = order.items.map(i => `${i.qty}x ${i.name}${i.variant ? ' (' + i.variant + ')' : ''}`).join('<br>');
-      
+
+      let statusBadge = `<span class="badge badge-unpaid">UNPAID</span>`;
+      if (order.status === 'paid') statusBadge = `<span class="badge badge-paid">PAID</span>`;
+      if (order.status === 'refund_due') statusBadge = `<span class="badge badge-refund">REFUND DUE (£${(order.refundAmount || 0).toFixed(2)})</span>`;
+
       card.innerHTML = `
         <div>
-          <span class="badge ${order.status === 'paid' ? 'badge-paid' : 'badge-unpaid'}">${order.status}</span>
+          ${statusBadge}
           ${order.handedOut ? '<span class="badge" style="background:#e2e8f0; color:#475569;">HANDED OUT</span>' : ''}
           <strong style="font-size: 1.1rem; display: block;">${order.customerName} - £${order.total.toFixed(2)}</strong>
         </div>
         <div style="margin: 8px 0; font-size: 0.95rem;">${itemsSummary}</div>
         ${order.notes ? `<div style="font-size: 0.85rem; color: #d97706; font-style: italic;">Note: ${order.notes}</div>` : ''}
-        <div style="margin-top: 10px; display: flex; gap: 6px;">
-          ${order.status === 'unpaid' ? `<button class="btn btn-success" style="padding:6px; font-size:0.85rem;" onclick="window.markPaid('${key}')">Mark Paid</button>` : ''}
-          <button class="btn btn-secondary" style="padding:6px; font-size:0.85rem;" onclick="window.toggleHandout('${key}', ${!order.handedOut})">
-            ${order.handedOut ? 'Unmark Handout' : 'Mark Handed Out'}
+        <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;">
+          ${order.status === 'unpaid' ? `<button class="btn btn-success" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.markPaid('${key}')">Mark Paid</button>` : ''}
+          ${order.status === 'refund_due' ? `<button class="btn btn-warning" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.confirmRefund('${key}')">Confirm Refund (£${(order.refundAmount||0).toFixed(2)})</button>` : ''}
+          ${order.status === 'paid' ? `<button class="btn btn-secondary" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.markUnpaid('${key}')">Mark Unpaid</button>` : ''}
+          <button class="btn btn-secondary" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.editOrder('${key}')">Edit</button>
+          <button class="btn btn-secondary" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.toggleHandout('${key}', ${!order.handedOut})">
+            ${order.handedOut ? 'Unmark Handout' : 'Handed Out'}
           </button>
-          <button class="btn btn-danger" style="padding:6px; font-size:0.85rem;" onclick="window.deleteOrder('${key}')">Delete</button>
+          <button class="btn btn-danger" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.deleteOrder('${key}')">Delete</button>
         </div>
       `;
       container.appendChild(card);
     });
+
+    updateStats(totalCollected, totalUnpaid, nightTotal);
   }
 
-  window.markPaid = function(key) {
-    update(ref(db, `orders/${key}`), { status: 'paid' });
-  };
+  function updateStats(collected, unpaid, total) {
+    document.getElementById('stat-collected').innerText = `£${collected.toFixed(2)}`;
+    document.getElementById('stat-unpaid').innerText = `£${unpaid.toFixed(2)}`;
+    document.getElementById('stat-total').innerText = `£${total.toFixed(2)}`;
+  }
 
-  window.toggleHandout = function(key, val) {
-    update(ref(db, `orders/${key}`), { handedOut: val });
-  };
+  window.markPaid = function(key) { update(ref(db, `orders/${key}`), { status: 'paid', refundAmount: 0 }); };
+  window.markUnpaid = function(key) { update(ref(db, `orders/${key}`), { status: 'unpaid', refundAmount: 0 }); };
+  window.confirmRefund = function(key) { update(ref(db, `orders/${key}`), { status: 'paid', refundAmount: 0 }); alert('Refund confirmed!'); };
+  window.toggleHandout = function(key, val) { update(ref(db, `orders/${key}`), { handedOut: val }); };
 
   window.deleteOrder = function(key) {
-    if (confirm('Delete this order?')) {
+    if (confirm('Delete this order?')) remove(ref(db, `orders/${key}`));
+  };
+
+  window.editOrder = function(key) {
+    const order = currentOrders[key];
+    if (!order) return;
+
+    if (confirm(`Load ${order.customerName}'s order into form to edit?`)) {
+      editingOrderMeta = { key: key, originalStatus: order.status, originalTotal: order.total };
+      document.getElementById('customerName').value = order.customerName;
+      document.getElementById('specialNotes').value = order.notes || '';
+
+      initFormState();
+      order.items.forEach(item => {
+        if (formState[item.id]) {
+          const existingRow = formState[item.id].find(r => r.variant === item.variant);
+          if (existingRow) existingRow.qty = item.qty;
+          else formState[item.id].push({ variant: item.variant, qty: item.qty });
+        }
+      });
+
       remove(ref(db, `orders/${key}`));
+      renderMenu();
+      calculateTotal();
+      switchTab('order');
     }
   };
 
   window.generateSummary = function() {
     const keys = Object.keys(currentOrders);
-    if (keys.length === 0) {
-      alert('No orders to summarize!');
-      return;
-    }
+    if (keys.length === 0) { alert('No orders to summarize!'); return; }
 
     const unpaidNames = [];
     const totals = {};
+    let grandTotal = 0;
 
     keys.forEach(key => {
       const order = currentOrders[key];
-      if (order.status === 'unpaid') {
-        unpaidNames.push(order.customerName);
-      }
+      if (order.status === 'unpaid' || order.status === 'refund_due') unpaidNames.push(order.customerName);
+
       order.items.forEach(item => {
         const itemLabel = `${item.name}${item.variant ? ' (' + item.variant + ')' : ''}`;
-        totals[itemLabel] = (totals[itemLabel] || 0) + item.qty;
+        if (!totals[itemLabel]) totals[itemLabel] = { qty: 0, price: item.price };
+        totals[itemLabel].qty += item.qty;
+        grandTotal += item.qty * item.price;
       });
     });
 
     if (unpaidNames.length > 0) {
-      alert(`⚠️️ Warning: There are ${unpaidNames.length} unpaid order(s) for: ${unpaidNames.join(', ')}.`);
+      alert(`⚠ Warning: There are unresolved payment/refund statuses for: ${unpaidNames.join(', ')}.`);
     }
 
-    let summaryText = `*BOWLS CLUB CHIPPY ORDER*\n------------------------\n`;
+    let summaryText = `*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
     Object.keys(totals).forEach(label => {
-      summaryText += `${totals[label]}x ${label}\n`;
+      const lineTotal = totals[label].qty * totals[label].price;
+      summaryText += `${totals[label].qty}x ${label} (£${totals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
     });
-    summaryText += `------------------------\nTotal Orders: ${keys.length}`;
+    summaryText += `----------------------------------\n`;
+    summaryText += `*GRAND TOTAL TO PAY CHIPPY:* *£${grandTotal.toFixed(2)}*`;
 
     document.getElementById('chippy-summary-text').innerText = summaryText;
     document.getElementById('chippy-summary-container').classList.remove('hidden');
@@ -361,32 +491,79 @@
 
   window.copySummary = function() {
     const text = document.getElementById('chippy-summary-text').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Chippy summary copied to clipboard!');
-    });
+    navigator.clipboard.writeText(text).then(() => alert('Chippy summary copied to clipboard!'));
   };
 
-  window.archiveSession = function() {
-    if (confirm('Are you sure you want to clear ALL orders for this session? This cannot be undone.')) {
+  window.endFridaySession = function() {
+    const keys = Object.keys(currentOrders);
+    if (keys.length === 0) { alert('No active orders in database!'); return; }
+
+    const unresolved = keys.filter(k => currentOrders[k].status === 'unpaid' || currentOrders[k].status === 'refund_due');
+    if (unresolved.length > 0) {
+      alert(`🛑 Cannot End Session: There are still ${unresolved.length} unresolved order(s) (Unpaid or Refund Due).\n\nPlease resolve or delete them before resetting.`);
+      return;
+    }
+
+    if (confirm('All orders are resolved! Download PDF summary report and reset session for next week?')) {
+      downloadPdfReport();
       remove(ordersRef);
       document.getElementById('chippy-summary-container').classList.add('hidden');
+      alert('Session ended successfully! PDF saved and database cleared.');
     }
   };
+
+  function downloadPdfReport() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-GB').replace(/\//g, '-');
+    
+    doc.setFontSize(18);
+    doc.text("Bowls Club Chippy Order Summary", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Date: ${dateStr}`, 14, 28);
+    
+    let y = 38;
+    doc.setFontSize(14);
+    doc.text("Customer Orders Roster", 14, y);
+    y += 8;
+    
+    doc.setFontSize(10);
+    Object.keys(currentOrders).forEach(key => {
+      const order = currentOrders[key];
+      const itemsText = order.items.map(i => `${i.qty}x ${i.name}${i.variant ? ' ('+i.variant+')' : ''}`).join(', ');
+      doc.text(`${order.customerName} - £${order.total.toFixed(2)} [PAID]`, 14, y);
+      y += 5;
+      doc.text(`   Items: ${itemsText}`, 14, y);
+      y += 7;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+
+    let totalEarned = 0;
+    Object.keys(currentOrders).forEach(k => totalEarned += currentOrders[k].total);
+    
+    y += 10;
+    doc.setFontSize(12);
+    doc.text(`Total Revenue Collected: £${totalEarned.toFixed(2)}`, 14, y);
+
+    doc.save(`Bowls Club Chippy Order ${dateStr}.pdf`);
+  }
 
   window.switchTab = function(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     if (tab === 'order') {
-      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('btn-tab-order').classList.add('active');
       document.getElementById('view-order').classList.remove('hidden');
       document.getElementById('view-organizer').classList.add('hidden');
     } else {
-      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      document.getElementById('btn-tab-organizer').classList.add('active');
       document.getElementById('view-order').classList.add('hidden');
       document.getElementById('view-organizer').classList.remove('hidden');
     }
   };
 
   // Initial setup
+  initFormState();
   renderMenu();
 </script>
 
