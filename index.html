@@ -28,7 +28,7 @@
     .view-card { background: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
     .input-group { margin-bottom: 14px; }
     label { display: block; font-weight: bold; margin-bottom: 6px; }
-    input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
+    input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
     
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
@@ -45,7 +45,6 @@
     .qty-btn:active { background: #bbb; }
     .qty-val { font-weight: bold; font-size: 1.05rem; width: 20px; text-align: center; }
     .add-row-btn { font-size: 0.85rem; background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; color: var(--primary); cursor: pointer; margin-top: 6px; display: inline-block; }
-    .add-row-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .remove-row-btn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
 
     .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; margin-top: 8px; }
@@ -72,8 +71,16 @@
     .badge-paid { background: #dcfce7; color: #15803d; }
     .badge-unpaid { background: #fee2e2; color: #b91c1c; }
     .badge-refund { background: #fef3c7; color: #b45309; }
+    .badge-status { background: #e2e8f0; color: #334155; }
+    .badge-locked { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+    .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+    .addon-box { background: #fff7ed; border: 2px dashed #f97316; padding: 12px; border-radius: 8px; margin-top: 16px; }
     
-    .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 12px; font-size: 0.9rem; }
+    /* Modal Styles */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 380px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
     .hidden { display: none !important; }
     footer { text-align: center; margin-top: 20px; }
   </style>
@@ -101,11 +108,6 @@
     <h3>Menu Items</h3>
     <div id="menu-container"></div>
 
-    <div class="input-group" style="margin-top: 16px;">
-      <label for="specialNotes">Special Requests / Notes:</label>
-      <input type="text" id="specialNotes" placeholder="e.g. Separate container for curry sauce">
-    </div>
-
     <div style="font-size: 1.3rem; font-weight: bold; margin: 16px 0; text-align: right;">
       Total: £<span id="order-total">0.00</span>
     </div>
@@ -123,14 +125,27 @@
       <div class="stat-box"><span>Night Total</span><strong id="stat-total">£0.00</strong></div>
     </div>
 
-    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-      <button class="btn btn-secondary" onclick="generateSummary()">Generate Chippy Summary</button>
+    <!-- MAIN CHIPPY ORDER PANEL -->
+    <div id="main-summary-container" class="view-card" style="background:#f8fafc; border:1px solid #cbd5e1; padding:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">Main Chippy Order</h3>
+        <span id="lock-status-badge" class="badge badge-status">LIVE DRAFT</span>
+      </div>
+      <div id="chippy-summary-text" class="summary-box">No orders submitted yet.</div>
+      
+      <button id="btn-lock-send" class="btn btn-success" onclick="lockAndSendMainOrder()">🔒 Lock In Order & Send on WhatsApp</button>
+      <button id="btn-unlock-order" class="btn btn-secondary hidden" onclick="unlockMainOrder()" style="margin-top:6px; font-size:0.85rem; padding:8px;">🔓 Unlock / Edit Main Summary</button>
     </div>
 
-    <div id="chippy-summary-container" class="hidden">
-      <h3>Collated Chippy Order</h3>
-      <div id="chippy-summary-text" class="summary-box"></div>
-      <button class="btn btn-success" onclick="copySummary()">Copy for WhatsApp / SMS</button>
+    <!-- LATE ADD-ON ORDERS PANEL -->
+    <div id="addon-summary-container" class="addon-box hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; color:#c2410c;">⚠️ Late Add-on Orders</h3>
+        <span id="addon-status-badge" class="badge badge-status" style="background:#ffedd5; color:#c2410c;">PENDING ADD-ON</span>
+      </div>
+      <p style="font-size:0.85rem; color:#7c2d12; margin:4px 0 8px 0;">Orders received after main order was locked in:</p>
+      <div id="addon-summary-text" class="summary-box" style="background:#292524;">No late orders.</div>
+      <button id="btn-send-addon" class="btn btn-warning" onclick="sendAddonOrder()">Send Add-On via WhatsApp</button>
     </div>
 
     <hr style="margin: 20px 0;">
@@ -145,15 +160,30 @@
 
   <footer>
     <div id="organizer-login-wrapper">
-      <button class="btn btn-access" onclick="promptOrganizerPassword(event)">🔒 Organizer Dashboard Access</button>
+      <button class="btn btn-access" onclick="openPinModal()">🔒 Organizer Dashboard Access</button>
     </div>
   </footer>
+</div>
+
+<!-- PIN MODAL WITH NUMERIC KEYPAD -->
+<div id="pin-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h3 style="margin-top:0;">Organizer Access</h3>
+    <div class="input-group">
+      <label for="organizer-pin-input">Enter PIN Code:</label>
+      <input type="number" pattern="[0-9]*" inputmode="numeric" id="organizer-pin-input" placeholder="****">
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-primary" onclick="verifyPin()">Unlock</button>
+      <button class="btn btn-secondary" onclick="closePinModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- Firebase SDKs -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, push, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC4Ysq0-OMJZyNZfaO8a612vjMzQ86Oz5Y",
@@ -170,6 +200,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const ordersRef = ref(db, "orders");
+  const metaRef = ref(db, "session_meta");
 
   const burgerModifiersList = [
     { id: 'no_cheese', label: 'No Cheese' },
@@ -196,6 +227,7 @@
 
   let formState = {};
   let currentOrders = {};
+  let sessionMeta = { mainLocked: false, lockTimestamp: null };
   let editingOrderMeta = null;
 
   function createDefaultRow(item) {
@@ -205,9 +237,9 @@
     if (item.burgerMods) {
       row.mods = {
         no_cheese: false,
-        lettuce: false,
-        tomato: false,
-        onion: false,
+        lettuce: true,
+        tomato: true,
+        onion: true,
         no_mayo: false,
         no_ketchup: false
       };
@@ -396,8 +428,6 @@
     if (items.length === 0) { alert('Please select at least one item!'); return; }
 
     const total = calculateTotal();
-    const notes = document.getElementById('specialNotes').value.trim();
-
     let finalStatus = 'unpaid';
     let paidAmount = 0;
     let dueAmount = total;
@@ -426,13 +456,12 @@
       customerName: name,
       items: items,
       total: total,
-      notes: notes,
       status: finalStatus,
       paidAmount: paidAmount,
       dueAmount: dueAmount,
       refundAmount: refundAmount,
       handedOut: false,
-      timestamp: Date.now()
+      timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
     };
 
     push(ordersRef, orderData).then(() => {
@@ -446,11 +475,10 @@
           alert(`Order updated for ${name}!\n\nTotal remains £${total.toFixed(2)}.`);
         }
       } else {
-        alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment.`);
+        alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment (see organizer if you need to make changes BEFORE order is sent to chippy).`);
       }
 
       document.getElementById('customerName').value = '';
-      document.getElementById('specialNotes').value = '';
       initFormState();
       editingOrderMeta = null;
       renderMenu();
@@ -458,21 +486,179 @@
     });
   };
 
-  window.promptOrganizerPassword = function(e) {
-    if (e) e.preventDefault();
-    const pwd = prompt("Enter Organizer PIN:");
-    if (pwd === ORGANIZER_PIN) {
+  // PIN MODAL HANDLERS
+  window.openPinModal = function() {
+    document.getElementById('organizer-pin-input').value = '';
+    document.getElementById('pin-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('organizer-pin-input').focus(), 100);
+  };
+
+  window.closePinModal = function() {
+    document.getElementById('pin-modal').classList.add('hidden');
+  };
+
+  window.verifyPin = function() {
+    const pin = document.getElementById('organizer-pin-input').value.trim();
+    if (pin === ORGANIZER_PIN) {
+      closePinModal();
       document.getElementById('btn-tab-organizer').classList.remove('hidden');
       document.getElementById('organizer-login-wrapper').classList.add('hidden');
       switchTab('organizer');
       alert('Organizer mode unlocked!');
-    } else if (pwd !== null) { alert('Incorrect PIN!'); }
+    } else {
+      alert('Incorrect PIN!');
+    }
   };
+
+  // Realtime Listeners
+  onValue(metaRef, (snapshot) => {
+    sessionMeta = snapshot.val() || { mainLocked: false, lockTimestamp: null };
+    renderSummaries();
+  });
 
   onValue(ordersRef, (snapshot) => {
     currentOrders = snapshot.val() || {};
     renderOrganizerView();
+    renderSummaries();
   });
+
+  function renderSummaries() {
+    const keys = Object.keys(currentOrders);
+    
+    if (keys.length === 0) {
+      document.getElementById('chippy-summary-text').innerText = "No orders submitted yet.";
+      document.getElementById('addon-summary-container').classList.add('hidden');
+      return;
+    }
+
+    const mainOrders = [];
+    const addonOrders = [];
+
+    keys.forEach(k => {
+      const order = currentOrders[k];
+      if (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp) {
+        addonOrders.push(order);
+      } else {
+        mainOrders.push(order);
+      }
+    });
+
+    // Render Main Order Text
+    const mainTotals = {};
+    let mainGrandTotal = 0;
+
+    mainOrders.forEach(order => {
+      order.items.forEach(item => {
+        const itemLabel = `${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
+        if (!mainTotals[itemLabel]) mainTotals[itemLabel] = { qty: 0, price: item.price };
+        mainTotals[itemLabel].qty += item.qty;
+        mainGrandTotal += item.qty * item.price;
+      });
+    });
+
+    let mainText = `*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
+    Object.keys(mainTotals).forEach(label => {
+      const lineTotal = mainTotals[label].qty * mainTotals[label].price;
+      mainText += `${mainTotals[label].qty}x ${label} (£${mainTotals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
+    });
+    mainText += `----------------------------------\n`;
+    mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n`;
+
+    document.getElementById('chippy-summary-text').innerText = mainText;
+
+    // UI State Updating for Main Order
+    const badge = document.getElementById('lock-status-badge');
+    const lockBtn = document.getElementById('btn-lock-send');
+    const unlockBtn = document.getElementById('btn-unlock-order');
+
+    if (sessionMeta.mainLocked) {
+      const timeStr = sessionMeta.lockTimestamp ? new Date(sessionMeta.lockTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      badge.className = "badge badge-locked";
+      badge.innerText = `🟢 SENT AT ${timeStr}`;
+      lockBtn.innerText = "Copy Sent Summary Again";
+      unlockBtn.classList.remove('hidden');
+    } else {
+      badge.className = "badge badge-status";
+      badge.innerText = "LIVE DRAFT";
+      lockBtn.innerText = "🔒 Lock In Order & Send on WhatsApp";
+      unlockBtn.classList.add('hidden');
+    }
+
+    // Render Late Add-ons if any
+    if (sessionMeta.mainLocked && addonOrders.length > 0) {
+      document.getElementById('addon-summary-container').classList.remove('hidden');
+
+      const addonTotals = {};
+      let addonGrandTotal = 0;
+
+      addonOrders.forEach(order => {
+        order.items.forEach(item => {
+          const itemLabel = `${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
+          if (!addonTotals[itemLabel]) addonTotals[itemLabel] = { qty: 0, price: item.price };
+          addonTotals[itemLabel].qty += item.qty;
+          addonGrandTotal += item.qty * item.price;
+        });
+      });
+
+      let addonText = `*ADD-ON TO BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
+      Object.keys(addonTotals).forEach(label => {
+        const lineTotal = addonTotals[label].qty * addonTotals[label].price;
+        addonText += `${addonTotals[label].qty}x ${label} (£${addonTotals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
+      });
+      addonText += `----------------------------------\n`;
+      addonText += `*ADDITIONAL PAYMENT:* *£${addonGrandTotal.toFixed(2)}*\n`;
+
+      document.getElementById('addon-summary-text').innerText = addonText;
+    } else {
+      document.getElementById('addon-summary-container').classList.add('hidden');
+    }
+  }
+
+  window.lockAndSendMainOrder = function() {
+    const keys = Object.keys(currentOrders);
+    if (keys.length === 0) { alert('No orders submitted yet!'); return; }
+
+    const unpaidNames = [];
+    keys.forEach(k => {
+      const o = currentOrders[k];
+      if (o.status === 'unpaid' || o.status === 'partial_due' || o.status === 'refund_due') {
+        unpaidNames.push(o.customerName);
+      }
+    });
+
+    if (unpaidNames.length > 0) {
+      alert(`🛑 CANNOT LOCK IN YET:\n\nThere are unresolved balances or refunds for: ${unpaidNames.join(', ')}.\n\nPlease resolve payment status before sending to the chippy!`);
+      return;
+    }
+
+    const text = document.getElementById('chippy-summary-text').innerText;
+    
+    if (!sessionMeta.mainLocked) {
+      set(metaRef, {
+        mainLocked: true,
+        lockTimestamp: Date.now()
+      });
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Main Chippy summary locked & copied to clipboard!\n\nOpening WhatsApp...');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    });
+  };
+
+  window.unlockMainOrder = function() {
+    if (confirm('Unlock main order? Any late orders will merge back into the main live summary.')) {
+      set(metaRef, { mainLocked: false, lockTimestamp: null });
+    }
+  };
+
+  window.sendAddonOrder = function() {
+    const text = document.getElementById('addon-summary-text').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Add-on order summary copied to clipboard!\n\nOpening WhatsApp...');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    });
+  };
 
   function renderOrganizerView() {
     const container = document.getElementById('orders-list');
@@ -510,14 +696,16 @@
       if (order.status === 'partial_due') statusBadge = `<span class="badge badge-unpaid">ADDITIONAL £${due.toFixed(2)} DUE</span>`;
       if (order.status === 'refund_due') statusBadge = `<span class="badge badge-refund">REFUND DUE (£${refund.toFixed(2)})</span>`;
 
+      const isLateOrder = sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp;
+
       card.innerHTML = `
         <div>
           ${statusBadge}
+          ${isLateOrder ? '<span class="badge" style="background:#ffedd5; color:#c2410c;">LATE ADD-ON</span>' : ''}
           ${order.handedOut ? '<span class="badge" style="background:#e2e8f0; color:#475569;">HANDED OUT</span>' : ''}
           <strong style="font-size: 1.1rem; display: block;">${order.customerName} - £${order.total.toFixed(2)}</strong>
         </div>
         <div style="margin: 8px 0; font-size: 0.95rem;">${itemsSummary}</div>
-        ${order.notes ? `<div style="font-size: 0.85rem; color: #d97706; font-style: italic;">Note: ${order.notes}</div>` : ''}
         <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;">
           ${order.status === 'unpaid' ? `<button class="btn btn-success" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.markPaid('${key}')">Mark Paid</button>` : ''}
           ${order.status === 'partial_due' ? `<button class="btn btn-success" style="padding:6px 10px; font-size:0.85rem; width:auto;" onclick="window.markPaid('${key}')">Mark Extra £${due.toFixed(2)} Paid</button>` : ''}
@@ -591,11 +779,11 @@
       editingOrderMeta = { 
         key: key, 
         paidAmount: calculatedPaidAmount,
-        originalTotal: order.total 
+        originalTotal: order.total,
+        timestamp: order.timestamp
       };
 
       document.getElementById('customerName').value = order.customerName;
-      document.getElementById('specialNotes').value = order.notes || '';
 
       initFormState();
 
@@ -618,7 +806,7 @@
             }
             if (cfg.burgerMods && newRow.mods) {
               burgerModifiersList.forEach(m => {
-                if (opts.includes(m.label)) newRow.mods[m.id] = true;
+                newRow.mods[m.id] = opts.includes(m.label);
               });
             }
           }
@@ -638,53 +826,6 @@
     }
   };
 
-  window.generateSummary = function() {
-    const keys = Object.keys(currentOrders);
-    if (keys.length === 0) { alert('No orders to summarize!'); return; }
-
-    const unpaidNames = [];
-    const notesList = [];
-    const totals = {};
-    let grandTotal = 0;
-
-    keys.forEach(key => {
-      const order = currentOrders[key];
-      if (order.status === 'unpaid' || order.status === 'partial_due' || order.status === 'refund_due') unpaidNames.push(order.customerName);
-      if (order.notes) notesList.push(`• ${order.customerName}: ${order.notes}`);
-
-      order.items.forEach(item => {
-        const itemLabel = `${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
-        if (!totals[itemLabel]) totals[itemLabel] = { qty: 0, price: item.price };
-        totals[itemLabel].qty += item.qty;
-        grandTotal += item.qty * item.price;
-      });
-    });
-
-    if (unpaidNames.length > 0) {
-      alert(`⚠ Warning: There are unresolved balances/refunds for: ${unpaidNames.join(', ')}.`);
-    }
-
-    let summaryText = `*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-    Object.keys(totals).forEach(label => {
-      const lineTotal = totals[label].qty * totals[label].price;
-      summaryText += `${totals[label].qty}x ${label} (£${totals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
-    });
-    summaryText += `----------------------------------\n`;
-    summaryText += `*GRAND TOTAL TO PAY CHIPPY:* *£${grandTotal.toFixed(2)}*\n`;
-
-    if (notesList.length > 0) {
-      summaryText += `\n*SPECIAL INSTRUCTIONS & NOTES:*\n` + notesList.join('\n');
-    }
-
-    document.getElementById('chippy-summary-text').innerText = summaryText;
-    document.getElementById('chippy-summary-container').classList.remove('hidden');
-  };
-
-  window.copySummary = function() {
-    const text = document.getElementById('chippy-summary-text').innerText;
-    navigator.clipboard.writeText(text).then(() => alert('Chippy summary copied to clipboard!'));
-  };
-
   window.endFridaySession = function() {
     const keys = Object.keys(currentOrders);
     if (keys.length === 0) { alert('No active orders in database!'); return; }
@@ -698,7 +839,7 @@
     if (confirm('All orders are resolved! Download PDF summary report and reset session for next week?')) {
       downloadPdfReport();
       remove(ordersRef);
-      document.getElementById('chippy-summary-container').classList.add('hidden');
+      remove(metaRef);
       alert('Session ended successfully! PDF saved and database cleared.');
     }
   };
