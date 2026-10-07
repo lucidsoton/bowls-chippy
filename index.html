@@ -173,9 +173,9 @@
     { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'] },
     { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'] },
     { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00 },
-    { id: 'cheeseburger_chips', name: '1½ Cheese Burger & Chips', price: 7.30 },
+    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30 },
     { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00 },
-    { id: 'scampi_chips', name: 'Scampi & Chips', price: 9.50 },
+    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50 },
     { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00 },
     { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00 },
     { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00 }
@@ -323,8 +323,9 @@
     let paidAmount = 0;
     let dueAmount = total;
     let refundAmount = 0;
+    const isEditing = editingOrderMeta !== null;
 
-    if (editingOrderMeta) {
+    if (isEditing) {
       paidAmount = editingOrderMeta.paidAmount || 0;
       
       if (total === paidAmount) {
@@ -356,7 +357,12 @@
     };
 
     push(ordersRef, orderData).then(() => {
-      alert(`Order updated for ${name}!`);
+      if (isEditing) {
+        alert(`Order updated for ${name}!`);
+      } else {
+        alert(`Order saved for ${name}! Please see organizer to settle any payment.`);
+      }
+
       document.getElementById('customerName').value = '';
       document.getElementById('specialNotes').value = '';
       initFormState();
