@@ -33,8 +33,12 @@
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
     .item-price { color: var(--primary); }
-    .item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; background: #fff; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; }
-    .item-row select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; flex: 1; }
+    .item-row { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin-top: 8px; background: #fff; }
+    .item-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .item-controls select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; flex: 1; }
+    
+    .toggles-box { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; font-size: 0.85rem; }
+    .toggles-box label { display: inline-flex; align-items: center; gap: 4px; font-weight: normal; margin-bottom: 0; cursor: pointer; }
     
     .qty-controls { display: flex; align-items: center; gap: 8px; }
     .qty-btn { width: 34px; height: 34px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
@@ -99,7 +103,7 @@
 
     <div class="input-group" style="margin-top: 16px;">
       <label for="specialNotes">Special Requests / Notes:</label>
-      <input type="text" id="specialNotes" placeholder="e.g. No salt & vinegar on Dave's chips">
+      <input type="text" id="specialNotes" placeholder="e.g. Separate container for curry sauce">
     </div>
 
     <div style="font-size: 1.3rem; font-weight: bold; margin: 16px 0; text-align: right;">
@@ -167,32 +171,54 @@
   const db = getDatabase(app);
   const ordersRef = ref(db, "orders");
 
+  const burgerModifiersList = [
+    { id: 'no_cheese', label: 'No Cheese' },
+    { id: 'lettuce', label: '+ Lettuce' },
+    { id: 'tomato', label: '+ Tomato' },
+    { id: 'onion', label: '+ Onion' },
+    { id: 'no_mayo', label: 'No Mayo' },
+    { id: 'no_ketchup', label: 'No Ketchup' }
+  ];
+
   // Base Menu Config
   const menuConfig = [
-    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50 },
-    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'] },
-    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'] },
-    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00 },
-    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30 },
-    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00 },
-    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50 },
-    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00 },
-    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00 },
-    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00 }
+    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, sv: true },
+    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true },
+    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true },
+    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true },
+    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true },
+    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, burgerMods: true, sv: true },
+    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true },
+    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false },
+    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false },
+    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false }
   ];
 
   let formState = {};
   let currentOrders = {};
   let editingOrderMeta = null;
 
+  function createDefaultRow(item) {
+    const row = { qty: 0 };
+    if (item.variants) row.variant = item.variants[0];
+    if (item.sv) { row.salt = true; row.vinegar = true; }
+    if (item.burgerMods) {
+      row.mods = {
+        no_cheese: false,
+        lettuce: false,
+        tomato: false,
+        onion: false,
+        no_mayo: false,
+        no_ketchup: false
+      };
+    }
+    return row;
+  }
+
   function initFormState() {
     formState = {};
     menuConfig.forEach(item => {
-      if (item.variants) {
-        formState[item.id] = [{ variant: item.variants[0], qty: 0 }];
-      } else {
-        formState[item.id] = [{ qty: 0 }];
-      }
+      formState[item.id] = [createDefaultRow(item)];
     });
   }
 
@@ -215,26 +241,44 @@
           `;
         }
 
-        const removeBtn = (item.variants && formState[item.id].length > 1) 
+        const removeBtn = (formState[item.id].length > 1) 
           ? `<button class="remove-row-btn" onclick="window.removeVariantRow('${item.id}', ${idx})">✕</button>` 
           : '';
 
+        let togglesHtml = '';
+        if (item.sv) {
+          togglesHtml += `
+            <label><input type="checkbox" ${row.salt ? 'checked' : ''} onchange="window.updateToggle('${item.id}', ${idx}, 'salt', this.checked)"> Salt</label>
+            <label><input type="checkbox" ${row.vinegar ? 'checked' : ''} onchange="window.updateToggle('${item.id}', ${idx}, 'vinegar', this.checked)"> Vinegar</label>
+          `;
+        }
+
+        if (item.burgerMods && row.mods) {
+          burgerModifiersList.forEach(m => {
+            togglesHtml += `
+              <label><input type="checkbox" ${row.mods[m.id] ? 'checked' : ''} onchange="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', this.checked)"> ${m.label}</label>
+            `;
+          });
+        }
+
         rowsHtml += `
           <div class="item-row">
-            ${variantSelect}
-            <div class="qty-controls">
-              <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, -1)">-</button>
-              <span class="qty-val">${row.qty}</span>
-              <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, 1)">+</button>
+            <div class="item-controls">
+              ${variantSelect}
+              <div class="qty-controls">
+                <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, -1)">-</button>
+                <span class="qty-val">${row.qty}</span>
+                <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, 1)">+</button>
+              </div>
+              ${removeBtn}
             </div>
-            ${removeBtn}
+            ${togglesHtml ? `<div class="toggles-box">${togglesHtml}</div>` : ''}
           </div>
         `;
       });
 
-      const maxVariantsReached = item.variants && (formState[item.id].length >= item.variants.length);
-      const addRowBtn = item.variants 
-        ? `<button class="add-row-btn" ${maxVariantsReached ? 'disabled' : ''} onclick="window.addVariantRow('${item.id}')">${maxVariantsReached ? 'All Options Added' : '+ Add Another Variant'}</button>` 
+      const addRowBtn = (item.variants || item.sv || item.burgerMods)
+        ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another Customization</button>` 
         : '';
 
       itemEl.innerHTML = `
@@ -259,15 +303,29 @@
     formState[itemId][rowIdx].variant = val;
   };
 
+  window.updateToggle = function(itemId, rowIdx, key, checked) {
+    formState[itemId][rowIdx][key] = checked;
+  };
+
+  window.updateBurgerMod = function(itemId, rowIdx, modId, checked) {
+    if (!formState[itemId][rowIdx].mods) formState[itemId][rowIdx].mods = {};
+    formState[itemId][rowIdx].mods[modId] = checked;
+  };
+
   window.addVariantRow = function(itemId) {
     const item = menuConfig.find(m => m.id === itemId);
-    if (!item || !item.variants) return;
-    if (formState[itemId].length >= item.variants.length) return;
+    if (!item) return;
 
-    const usedVariants = formState[itemId].map(r => r.variant);
-    const unused = item.variants.find(v => !usedVariants.includes(v)) || item.variants[0];
+    const newRow = createDefaultRow(item);
+    newRow.qty = 1;
 
-    formState[itemId].push({ variant: unused, qty: 1 });
+    if (item.variants) {
+      const usedVariants = formState[itemId].map(r => r.variant);
+      const unused = item.variants.find(v => !usedVariants.includes(v)) || item.variants[0];
+      newRow.variant = unused;
+    }
+
+    formState[itemId].push(newRow);
     renderMenu();
     calculateTotal();
   };
@@ -289,6 +347,25 @@
     return total;
   }
 
+  function buildOptionsString(itemConfig, row) {
+    const options = [];
+    if (row.variant) options.push(row.variant);
+
+    if (itemConfig.sv) {
+      if (!row.salt && !row.vinegar) options.push('No Salt & No Vinegar');
+      else if (!row.salt) options.push('No Salt');
+      else if (!row.vinegar) options.push('No Vinegar');
+    }
+
+    if (itemConfig.burgerMods && row.mods) {
+      burgerModifiersList.forEach(m => {
+        if (row.mods[m.id]) options.push(m.label);
+      });
+    }
+
+    return options.length > 0 ? options.join(', ') : '';
+  }
+
   window.submitOrder = function() {
     const name = document.getElementById('customerName').value.trim();
     if (!name) { alert('Please enter a name for the order!'); return; }
@@ -298,14 +375,16 @@
     menuConfig.forEach(item => {
       formState[item.id].forEach(row => {
         if (row.qty > 0) {
-          const key = `${item.id}_${row.variant || 'default'}`;
+          const optStr = buildOptionsString(item, row);
+          const key = `${item.id}_${optStr || 'default'}`;
+
           if (!aggregatedItems[key]) {
             aggregatedItems[key] = {
               id: item.id,
               name: item.name,
               qty: 0,
               price: item.price,
-              variant: row.variant || null
+              options: optStr || null
             };
           }
           aggregatedItems[key].qty += row.qty;
@@ -358,9 +437,16 @@
 
     push(ordersRef, orderData).then(() => {
       if (isEditing) {
-        alert(`Order updated for ${name}!`);
+        const diff = total - editingOrderMeta.originalTotal;
+        if (diff > 0) {
+          alert(`Order updated for ${name}!\n\nNew total: £${total.toFixed(2)}\nAdditional £${diff.toFixed(2)} due.`);
+        } else if (diff < 0) {
+          alert(`Order updated for ${name}!\n\nNew total: £${total.toFixed(2)}\nRefund of £${Math.abs(diff).toFixed(2)} due.`);
+        } else {
+          alert(`Order updated for ${name}!\n\nTotal remains £${total.toFixed(2)}.`);
+        }
       } else {
-        alert(`Order saved for ${name}! Please see organizer to settle any payment.`);
+        alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment.`);
       }
 
       document.getElementById('customerName').value = '';
@@ -417,7 +503,7 @@
       const card = document.createElement('div');
       card.className = `order-card ${order.status} ${order.handedOut ? 'handed-out' : ''}`;
 
-      const itemsSummary = order.items.map(i => `${i.qty}x ${i.name}${i.variant ? ' (' + i.variant + ')' : ''}`).join('<br>');
+      const itemsSummary = order.items.map(i => `${i.qty}x ${i.name}${i.options ? ' (' + i.options + ')' : ''}`).join('<br>');
 
       let statusBadge = `<span class="badge badge-unpaid">UNPAID (£${due.toFixed(2)})</span>`;
       if (order.status === 'paid') statusBadge = `<span class="badge badge-paid">PAID</span>`;
@@ -512,11 +598,36 @@
       document.getElementById('specialNotes').value = order.notes || '';
 
       initFormState();
+
       order.items.forEach(item => {
         if (formState[item.id]) {
-          const existingRow = formState[item.id].find(r => r.variant === item.variant);
-          if (existingRow) existingRow.qty += item.qty;
-          else formState[item.id].push({ variant: item.variant, qty: item.qty });
+          const cfg = menuConfig.find(m => m.id === item.id);
+          const newRow = createDefaultRow(cfg);
+          newRow.qty = item.qty;
+
+          if (item.options) {
+            const opts = item.options.split(', ').map(s => s.trim());
+            if (cfg.variants) {
+              const matchedVar = cfg.variants.find(v => opts.includes(v));
+              if (matchedVar) newRow.variant = matchedVar;
+            }
+            if (cfg.sv) {
+              if (opts.includes('No Salt & No Vinegar')) { newRow.salt = false; newRow.vinegar = false; }
+              else if (opts.includes('No Salt')) { newRow.salt = false; newRow.vinegar = true; }
+              else if (opts.includes('No Vinegar')) { newRow.salt = true; newRow.vinegar = false; }
+            }
+            if (cfg.burgerMods && newRow.mods) {
+              burgerModifiersList.forEach(m => {
+                if (opts.includes(m.label)) newRow.mods[m.id] = true;
+              });
+            }
+          }
+
+          if (formState[item.id][0].qty === 0) {
+            formState[item.id][0] = newRow;
+          } else {
+            formState[item.id].push(newRow);
+          }
         }
       });
 
@@ -532,15 +643,17 @@
     if (keys.length === 0) { alert('No orders to summarize!'); return; }
 
     const unpaidNames = [];
+    const notesList = [];
     const totals = {};
     let grandTotal = 0;
 
     keys.forEach(key => {
       const order = currentOrders[key];
       if (order.status === 'unpaid' || order.status === 'partial_due' || order.status === 'refund_due') unpaidNames.push(order.customerName);
+      if (order.notes) notesList.push(`• ${order.customerName}: ${order.notes}`);
 
       order.items.forEach(item => {
-        const itemLabel = `${item.name}${item.variant ? ' (' + item.variant + ')' : ''}`;
+        const itemLabel = `${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
         if (!totals[itemLabel]) totals[itemLabel] = { qty: 0, price: item.price };
         totals[itemLabel].qty += item.qty;
         grandTotal += item.qty * item.price;
@@ -557,7 +670,11 @@
       summaryText += `${totals[label].qty}x ${label} (£${totals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
     });
     summaryText += `----------------------------------\n`;
-    summaryText += `*GRAND TOTAL TO PAY CHIPPY:* *£${grandTotal.toFixed(2)}*`;
+    summaryText += `*GRAND TOTAL TO PAY CHIPPY:* *£${grandTotal.toFixed(2)}*\n`;
+
+    if (notesList.length > 0) {
+      summaryText += `\n*SPECIAL INSTRUCTIONS & NOTES:*\n` + notesList.join('\n');
+    }
 
     document.getElementById('chippy-summary-text').innerText = summaryText;
     document.getElementById('chippy-summary-container').classList.remove('hidden');
@@ -605,7 +722,7 @@
     doc.setFontSize(10);
     Object.keys(currentOrders).forEach(key => {
       const order = currentOrders[key];
-      const itemsText = order.items.map(i => `${i.qty}x ${i.name}${i.variant ? ' ('+i.variant+')' : ''}`).join(', ');
+      const itemsText = order.items.map(i => `${i.qty}x ${i.name}${i.options ? ' ('+i.options+')' : ''}`).join(', ');
       doc.text(`${order.customerName} - £${order.total.toFixed(2)} [PAID]`, 14, y);
       y += 5;
       doc.text(`   Items: ${itemsText}`, 14, y);
