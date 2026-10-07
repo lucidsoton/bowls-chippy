@@ -264,7 +264,6 @@
     if (!item || !item.variants) return;
     if (formState[itemId].length >= item.variants.length) return;
 
-    // Default next row to unused variant
     const usedVariants = formState[itemId].map(r => r.variant);
     const unused = item.variants.find(v => !usedVariants.includes(v)) || item.variants[0];
 
@@ -294,7 +293,6 @@
     const name = document.getElementById('customerName').value.trim();
     if (!name) { alert('Please enter a name for the order!'); return; }
 
-    // Aggregate quantities by variant to combine duplicate rows
     const aggregatedItems = {};
 
     menuConfig.forEach(item => {
@@ -322,27 +320,25 @@
     const notes = document.getElementById('specialNotes').value.trim();
 
     let finalStatus = 'unpaid';
+    let paidAmount = 0;
     let dueAmount = total;
     let refundAmount = 0;
 
     if (editingOrderMeta) {
-      if (editingOrderMeta.originalStatus === 'paid') {
-        if (total > editingOrderMeta.originalTotal) {
-          dueAmount = total - editingOrderMeta.originalTotal;
-          finalStatus = 'partial_due';
-          alert(`Notice: Order increased by £${dueAmount.toFixed(2)}. Extra £${dueAmount.toFixed(2)} is due.`);
-        } else if (total < editingOrderMeta.originalTotal) {
-          refundAmount = editingOrderMeta.originalTotal - total;
-          dueAmount = 0;
-          finalStatus = 'refund_due';
-          alert(`Notice: Order reduced. Please refund £${refundAmount.toFixed(2)} to member.`);
-        } else {
-          finalStatus = 'paid';
-          dueAmount = 0;
-        }
+      paidAmount = editingOrderMeta.paidAmount || 0;
+      
+      if (total === paidAmount) {
+        finalStatus = 'paid';
+        dueAmount = 0;
+        refundAmount = 0;
+      } else if (total > paidAmount) {
+        dueAmount = total - paidAmount;
+        finalStatus = paidAmount > 0 ? 'partial_due' : 'unpaid';
+        refundAmount = 0;
       } else {
-        finalStatus = 'unpaid';
-        dueAmount = total;
+        refundAmount = paidAmount - total;
+        dueAmount = 0;
+        finalStatus = 'refund_due';
       }
     }
 
@@ -352,6 +348,7 @@
       total: total,
       notes: notes,
       status: finalStatus,
+      paidAmount: paidAmount,
       dueAmount: dueAmount,
       refundAmount: refundAmount,
       handedOut: false,
@@ -359,7 +356,7 @@
     };
 
     push(ordersRef, orderData).then(() => {
-      alert(`Order saved for ${name}! Please see organizer to settle any payment.`);
+      alert(`Order updated for ${name}!`);
       document.getElementById('customerName').value = '';
       document.getElementById('specialNotes').value = '';
       initFormState();
@@ -404,19 +401,12 @@
       const order = currentOrders[key];
       nightTotal += order.total;
 
-      const due = order.dueAmount !== undefined ? order.dueAmount : (order.status === 'unpaid' ? order.total : 0);
+      const paidAmt = order.paidAmount !== undefined ? order.paidAmount : (order.status === 'paid' ? order.total : 0);
+      const due = order.dueAmount !== undefined ? order.dueAmount : Math.max(0, order.total - paidAmt);
       const refund = order.refundAmount || 0;
 
-      if (order.status === 'paid') {
-        totalCollected += order.total;
-      } else if (order.status === 'unpaid') {
-        totalUnpaid += order.total;
-      } else if (order.status === 'partial_due') {
-        totalCollected += (order.total - due);
-        totalUnpaid += due;
-      } else if (order.status === 'refund_due') {
-        totalCollected += order.total;
-      }
+      totalCollected += paidAmt;
+      totalUnpaid += due;
 
       const card = document.createElement('div');
       card.className = `order-card ${order.status} ${order.handedOut ? 'handed-out' : ''}`;
@@ -460,12 +450,37 @@
     document.getElementById('stat-total').innerText = `£${total.toFixed(2)}`;
   }
 
-  window.markPaid = function(key) { update(ref(db, `orders/${key}`), { status: 'paid', dueAmount: 0, refundAmount: 0 }); };
+  window.markPaid = function(key) { 
+    const order = currentOrders[key];
+    update(ref(db, `orders/${key}`), { 
+      status: 'paid', 
+      paidAmount: order ? order.total : 0, 
+      dueAmount: 0, 
+      refundAmount: 0 
+    }); 
+  };
+
   window.markUnpaid = function(key) { 
     const order = currentOrders[key];
-    update(ref(db, `orders/${key}`), { status: 'unpaid', dueAmount: order ? order.total : 0, refundAmount: 0 }); 
+    update(ref(db, `orders/${key}`), { 
+      status: 'unpaid', 
+      paidAmount: 0, 
+      dueAmount: order ? order.total : 0, 
+      refundAmount: 0 
+    }); 
   };
-  window.confirmRefund = function(key) { update(ref(db, `orders/${key}`), { status: 'paid', dueAmount: 0, refundAmount: 0 }); alert('Refund confirmed!'); };
+
+  window.confirmRefund = function(key) { 
+    const order = currentOrders[key];
+    update(ref(db, `orders/${key}`), { 
+      status: 'paid', 
+      paidAmount: order ? order.total : 0, 
+      dueAmount: 0, 
+      refundAmount: 0 
+    }); 
+    alert('Refund confirmed!'); 
+  };
+
   window.toggleHandout = function(key, val) { update(ref(db, `orders/${key}`), { handedOut: val }); };
 
   window.deleteOrder = function(key) {
@@ -477,11 +492,16 @@
     if (!order) return;
 
     if (confirm(`Load ${order.customerName}'s order into form to edit?`)) {
+      const calculatedPaidAmount = order.paidAmount !== undefined 
+        ? order.paidAmount 
+        : (order.status === 'paid' ? order.total : 0);
+
       editingOrderMeta = { 
         key: key, 
-        originalStatus: order.status, 
+        paidAmount: calculatedPaidAmount,
         originalTotal: order.total 
       };
+
       document.getElementById('customerName').value = order.customerName;
       document.getElementById('specialNotes').value = order.notes || '';
 
