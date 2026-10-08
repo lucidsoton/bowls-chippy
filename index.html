@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bowls Club Chippy Orders</title>
-  <!-- jsPDF Library for Automated PDF Exports -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
@@ -28,7 +27,7 @@
     .view-card { background: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
     .input-group { margin-bottom: 14px; }
     label { display: block; font-weight: bold; margin-bottom: 6px; }
-    input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
     
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
@@ -77,9 +76,9 @@
     .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 8px; margin-bottom: 10px; font-size: 0.9rem; }
     .addon-box { background: #fff7ed; border: 2px dashed #f97316; padding: 12px; border-radius: 8px; margin-top: 16px; }
     
-    /* Modal Styles */
+    /* Modal Overlay */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 380px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 340px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
     .hidden { display: none !important; }
     footer { text-align: center; margin-top: 20px; }
@@ -165,18 +164,14 @@
   </footer>
 </div>
 
-<!-- PIN MODAL WITH NUMERIC KEYPAD -->
-<div id="pin-modal" class="modal-overlay hidden">
-  <div class="modal-content">
-    <h3 style="margin-top:0;">Organizer Access</h3>
+<!-- PIN MODAL -->
+<div id="pin-modal" class="modal-overlay hidden" onclick="closePinModalOnBackdrop(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 style="margin-top:0; margin-bottom:12px;">Organizer Access</h3>
     <div class="input-group">
-      <label for="organizer-pin-input">Enter PIN Code:</label>
-      <input type="number" pattern="[0-9]*" inputmode="numeric" id="organizer-pin-input" placeholder="****">
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="organizer-pin-input" placeholder="Enter PIN" onkeydown="handlePinKeydown(event)">
     </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-primary" onclick="verifyPin()">Unlock</button>
-      <button class="btn btn-secondary" onclick="closePinModal()">Cancel</button>
-    </div>
+    <button class="btn btn-primary" onclick="verifyPin()">Unlock</button>
   </div>
 </div>
 
@@ -460,6 +455,7 @@
       dueAmount: dueAmount,
       refundAmount: refundAmount,
       handedOut: false,
+      isLate: Boolean(sessionMeta.mainLocked), // Hard-flag as late order if main summary locked
       timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
     };
 
@@ -474,7 +470,7 @@
           alert(`Order updated for ${name}!\n\nTotal remains £${total.toFixed(2)}.`);
         }
       } else {
-        alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment (see organizer if you need to make changes BEFORE order is sent to chippy).`);
+        alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment.`);
       }
 
       document.getElementById('customerName').value = '';
@@ -496,6 +492,18 @@
     document.getElementById('pin-modal').classList.add('hidden');
   };
 
+  window.closePinModalOnBackdrop = function(e) {
+    if (e.target.id === 'pin-modal') {
+      closePinModal();
+    }
+  };
+
+  window.handlePinKeydown = function(e) {
+    if (e.key === 'Enter') {
+      verifyPin();
+    }
+  };
+
   window.verifyPin = function() {
     const pin = document.getElementById('organizer-pin-input').value.trim();
     if (pin === ORGANIZER_PIN) {
@@ -503,7 +511,6 @@
       document.getElementById('btn-tab-organizer').classList.remove('hidden');
       document.getElementById('organizer-login-wrapper').classList.add('hidden');
       switchTab('organizer');
-      alert('Organizer mode unlocked!');
     } else {
       alert('Incorrect PIN!');
     }
@@ -533,11 +540,11 @@
     const mainOrders = [];
     const addonOrders = [];
 
-    // Filter to ONLY PAID orders for the Chippy Summaries
     keys.forEach(k => {
       const order = currentOrders[k];
       if (order.status === 'paid') {
-        if (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp) {
+        const isLate = order.isLate || (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp);
+        if (isLate) {
           addonOrders.push(order);
         } else {
           mainOrders.push(order);
@@ -701,7 +708,7 @@
       if (order.status === 'partial_due') statusBadge = `<span class="badge badge-unpaid">ADDITIONAL £${due.toFixed(2)} DUE</span>`;
       if (order.status === 'refund_due') statusBadge = `<span class="badge badge-refund">REFUND DUE (£${refund.toFixed(2)})</span>`;
 
-      const isLateOrder = sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp;
+      const isLateOrder = order.isLate || (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp);
 
       card.innerHTML = `
         <div>
@@ -899,7 +906,6 @@
     }
   };
 
-  // Initial setup
   initFormState();
   renderMenu();
 </script>
