@@ -425,52 +425,51 @@
     submitBtn.disabled = true;
     submitBtn.innerText = "Submitting...";
 
-    // Direct Live Server Check against Firebase
-    const liveMetaSnap = await get(metaRef);
-    const liveMeta = liveMetaSnap.val() || {};
-    const isMainLockedOnServer = Boolean(liveMeta.mainLocked);
+    try {
+      // Direct Live Server Check against Firebase
+      const liveMetaSnap = await get(metaRef);
+      const liveMeta = liveMetaSnap.val() || {};
+      const isMainLockedOnServer = Boolean(liveMeta.mainLocked);
 
-    const total = calculateTotal();
-    let finalStatus = 'unpaid';
-    let paidAmount = 0;
-    let dueAmount = total;
-    let refundAmount = 0;
-    const isEditing = editingOrderMeta !== null;
+      const total = calculateTotal();
+      let finalStatus = 'unpaid';
+      let paidAmount = 0;
+      let dueAmount = total;
+      let refundAmount = 0;
+      const isEditing = editingOrderMeta !== null;
 
-    if (isEditing) {
-      paidAmount = editingOrderMeta.paidAmount || 0;
-      
-      if (total === paidAmount) {
-        finalStatus = 'paid';
-        dueAmount = 0;
-        refundAmount = 0;
-      } else if (total > paidAmount) {
-        dueAmount = total - paidAmount;
-        finalStatus = paidAmount > 0 ? 'partial_due' : 'unpaid';
-        refundAmount = 0;
-      } else {
-        refundAmount = paidAmount - total;
-        dueAmount = 0;
-        finalStatus = 'refund_due';
+      if (isEditing) {
+        paidAmount = editingOrderMeta.paidAmount || 0;
+        
+        if (total === paidAmount) {
+          finalStatus = 'paid';
+          dueAmount = 0;
+          refundAmount = 0;
+        } else if (total > paidAmount) {
+          dueAmount = total - paidAmount;
+          finalStatus = paidAmount > 0 ? 'partial_due' : 'unpaid';
+          refundAmount = 0;
+        } else {
+          refundAmount = paidAmount - total;
+          dueAmount = 0;
+          finalStatus = 'refund_due';
+        }
       }
-    }
 
-    const orderData = {
-      customerName: name,
-      items: items,
-      total: total,
-      status: finalStatus,
-      paidAmount: paidAmount,
-      dueAmount: dueAmount,
-      refundAmount: refundAmount,
-      handedOut: false,
-      isLate: isEditing ? (editingOrderMeta.isLate || false) : isMainLockedOnServer,
-      timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
-    };
+      const orderData = {
+        customerName: name,
+        items: items,
+        total: total,
+        status: finalStatus,
+        paidAmount: paidAmount,
+        dueAmount: dueAmount,
+        refundAmount: refundAmount,
+        handedOut: false,
+        isLate: isEditing ? (editingOrderMeta.isLate || false) : isMainLockedOnServer,
+        timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
+      };
 
-    push(ordersRef, orderData).then(() => {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Submit Order";
+      await push(ordersRef, orderData);
 
       if (isEditing) {
         const diff = total - editingOrderMeta.originalTotal;
@@ -492,11 +491,13 @@
       editingOrderMeta = null;
       renderMenu();
       calculateTotal();
-    }).catch(() => {
+    } catch (err) {
+      console.error("Submission Error:", err);
+      alert("Error submitting order. Please check your connection and try again.");
+    } finally {
       submitBtn.disabled = false;
       submitBtn.innerText = "Submit Order";
-      alert("Error submitting order. Please check your internet connection and try again.");
-    });
+    }
   };
 
   // PIN MODAL HANDLERS
