@@ -131,7 +131,7 @@
         <h3 style="margin:0;">Main Chippy Order</h3>
         <span id="lock-status-badge" class="badge badge-status">LIVE DRAFT</span>
       </div>
-      <div id="chippy-summary-text" class="summary-box">No orders submitted yet.</div>
+      <div id="chippy-summary-text" class="summary-box">No paid orders yet.</div>
       
       <button id="btn-lock-send" class="btn btn-success" onclick="lockAndSendMainOrder()">🔒 Lock In Order & Send on WhatsApp</button>
       <button id="btn-unlock-order" class="btn btn-secondary hidden" onclick="unlockMainOrder()" style="margin-top:6px; font-size:0.85rem; padding:8px;">🔓 Unlock / Edit Main Summary</button>
@@ -143,8 +143,8 @@
         <h3 style="margin:0; color:#c2410c;">⚠️ Late Add-on Orders</h3>
         <span id="addon-status-badge" class="badge badge-status" style="background:#ffedd5; color:#c2410c;">PENDING ADD-ON</span>
       </div>
-      <p style="font-size:0.85rem; color:#7c2d12; margin:4px 0 8px 0;">Orders received after main order was locked in:</p>
-      <div id="addon-summary-text" class="summary-box" style="background:#292524;">No late orders.</div>
+      <p style="font-size:0.85rem; color:#7c2d12; margin:4px 0 8px 0;">Paid orders received after main order was locked in:</p>
+      <div id="addon-summary-text" class="summary-box" style="background:#292524;">No late paid orders.</div>
       <button id="btn-send-addon" class="btn btn-warning" onclick="sendAddonOrder()">Send Add-On via WhatsApp</button>
     </div>
 
@@ -211,7 +211,6 @@
     { id: 'no_ketchup', label: 'No Ketchup' }
   ];
 
-  // Base Menu Config
   const menuConfig = [
     { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, sv: true },
     { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true },
@@ -526,7 +525,7 @@
     const keys = Object.keys(currentOrders);
     
     if (keys.length === 0) {
-      document.getElementById('chippy-summary-text').innerText = "No orders submitted yet.";
+      document.getElementById('chippy-summary-text').innerText = "No paid orders submitted yet.";
       document.getElementById('addon-summary-container').classList.add('hidden');
       return;
     }
@@ -534,12 +533,15 @@
     const mainOrders = [];
     const addonOrders = [];
 
+    // Filter to ONLY PAID orders for the Chippy Summaries
     keys.forEach(k => {
       const order = currentOrders[k];
-      if (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp) {
-        addonOrders.push(order);
-      } else {
-        mainOrders.push(order);
+      if (order.status === 'paid') {
+        if (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp) {
+          addonOrders.push(order);
+        } else {
+          mainOrders.push(order);
+        }
       }
     });
 
@@ -556,15 +558,18 @@
       });
     });
 
-    let mainText = `*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-    Object.keys(mainTotals).forEach(label => {
-      const lineTotal = mainTotals[label].qty * mainTotals[label].price;
-      mainText += `${mainTotals[label].qty}x ${label} (£${mainTotals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
-    });
-    mainText += `----------------------------------\n`;
-    mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n`;
-
-    document.getElementById('chippy-summary-text').innerText = mainText;
+    if (Object.keys(mainTotals).length === 0) {
+      document.getElementById('chippy-summary-text').innerText = "No paid orders yet.";
+    } else {
+      let mainText = `*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
+      Object.keys(mainTotals).forEach(label => {
+        const lineTotal = mainTotals[label].qty * mainTotals[label].price;
+        mainText += `${mainTotals[label].qty}x ${label} (£${mainTotals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
+      });
+      mainText += `----------------------------------\n`;
+      mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n`;
+      document.getElementById('chippy-summary-text').innerText = mainText;
+    }
 
     // UI State Updating for Main Order
     const badge = document.getElementById('lock-status-badge');
@@ -584,7 +589,7 @@
       unlockBtn.classList.add('hidden');
     }
 
-    // Render Late Add-ons if any
+    // Render Late Add-ons if any paid late orders exist
     if (sessionMeta.mainLocked && addonOrders.length > 0) {
       document.getElementById('addon-summary-container').classList.remove('hidden');
 
