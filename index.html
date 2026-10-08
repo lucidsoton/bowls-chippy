@@ -111,7 +111,7 @@
       Total: £<span id="order-total">0.00</span>
     </div>
 
-    <button class="btn btn-primary" onclick="submitOrder()">Submit Order</button>
+    <button id="btn-submit-order" class="btn btn-primary" onclick="submitOrder()">Submit Order</button>
   </div>
 
   <!-- ORGANIZER VIEW -->
@@ -178,7 +178,7 @@
 <!-- Firebase SDKs -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, push, onValue, update, remove, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC4Ysq0-OMJZyNZfaO8a612vjMzQ86Oz5Y",
@@ -392,7 +392,7 @@
     return options.length > 0 ? options.join(', ') : '';
   }
 
-  window.submitOrder = function() {
+  window.submitOrder = async function() {
     const name = document.getElementById('customerName').value.trim();
     if (!name) { alert('Please enter a name for the order!'); return; }
 
@@ -420,6 +420,15 @@
 
     const items = Object.values(aggregatedItems);
     if (items.length === 0) { alert('Please select at least one item!'); return; }
+
+    const submitBtn = document.getElementById('btn-submit-order');
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Submitting...";
+
+    // Direct Live Server Check against Firebase
+    const liveMetaSnap = await get(metaRef);
+    const liveMeta = liveMetaSnap.val() || {};
+    const isMainLockedOnServer = Boolean(liveMeta.mainLocked);
 
     const total = calculateTotal();
     let finalStatus = 'unpaid';
@@ -455,11 +464,14 @@
       dueAmount: dueAmount,
       refundAmount: refundAmount,
       handedOut: false,
-      isLate: Boolean(sessionMeta.mainLocked), // Hard-flag as late order if main summary locked
+      isLate: isEditing ? (editingOrderMeta.isLate || false) : isMainLockedOnServer,
       timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
     };
 
     push(ordersRef, orderData).then(() => {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Submit Order";
+
       if (isEditing) {
         const diff = total - editingOrderMeta.originalTotal;
         if (diff > 0) {
@@ -469,6 +481,8 @@
         } else {
           alert(`Order updated for ${name}!\n\nTotal remains £${total.toFixed(2)}.`);
         }
+      } else if (isMainLockedOnServer) {
+        alert(`⚠️ LATE ORDER NOTICE\n\nHi ${name}, the main chippy order for tonight has already been locked in and sent.\n\nWe have received your order and will try to add it as a late add-on, but please note it may not be possible to fulfill!`);
       } else {
         alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment.`);
       }
@@ -478,6 +492,10 @@
       editingOrderMeta = null;
       renderMenu();
       calculateTotal();
+    }).catch(() => {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Submit Order";
+      alert("Error submitting order. Please check your internet connection and try again.");
     });
   };
 
@@ -543,8 +561,7 @@
     keys.forEach(k => {
       const order = currentOrders[k];
       if (order.status === 'paid') {
-        const isLate = order.isLate || (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp);
-        if (isLate) {
+        if (order.isLate) {
           addonOrders.push(order);
         } else {
           mainOrders.push(order);
@@ -645,12 +662,10 @@
 
     const text = document.getElementById('chippy-summary-text').innerText;
     
-    if (!sessionMeta.mainLocked) {
-      set(metaRef, {
-        mainLocked: true,
-        lockTimestamp: Date.now()
-      });
-    }
+    set(metaRef, {
+      mainLocked: true,
+      lockTimestamp: Date.now()
+    });
 
     navigator.clipboard.writeText(text).then(() => {
       alert('Main Chippy summary locked & copied to clipboard!\n\nOpening WhatsApp...');
@@ -659,7 +674,7 @@
   };
 
   window.unlockMainOrder = function() {
-    if (confirm('Unlock main order? Any late orders will merge back into the main live summary.')) {
+    if (confirm('Unlock main order? Note: Late orders will remain tagged as late add-ons.')) {
       set(metaRef, { mainLocked: false, lockTimestamp: null });
     }
   };
@@ -708,12 +723,10 @@
       if (order.status === 'partial_due') statusBadge = `<span class="badge badge-unpaid">ADDITIONAL £${due.toFixed(2)} DUE</span>`;
       if (order.status === 'refund_due') statusBadge = `<span class="badge badge-refund">REFUND DUE (£${refund.toFixed(2)})</span>`;
 
-      const isLateOrder = order.isLate || (sessionMeta.mainLocked && sessionMeta.lockTimestamp && order.timestamp > sessionMeta.lockTimestamp);
-
       card.innerHTML = `
         <div>
           ${statusBadge}
-          ${isLateOrder ? '<span class="badge" style="background:#ffedd5; color:#c2410c;">LATE ADD-ON</span>' : ''}
+          ${order.isLate ? '<span class="badge" style="background:#ffedd5; color:#c2410c;">LATE ADD-ON</span>' : ''}
           ${order.handedOut ? '<span class="badge" style="background:#e2e8f0; color:#475569;">HANDED OUT</span>' : ''}
           <strong style="font-size: 1.1rem; display: block;">${order.customerName} - £${order.total.toFixed(2)}</strong>
         </div>
@@ -792,6 +805,7 @@
         key: key, 
         paidAmount: calculatedPaidAmount,
         originalTotal: order.total,
+        isLate: order.isLate || false,
         timestamp: order.timestamp
       };
 
