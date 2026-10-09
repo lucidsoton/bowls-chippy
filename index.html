@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bowls Club Chippy Orders</title>
+  <title>SOBG Chippy Orders</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
@@ -17,6 +17,7 @@
     body { background-color: var(--bg); color: var(--text); margin: 0; padding: 12px; font-size: 16px; }
     .container { max-width: 600px; margin: 0 auto; }
     header { background: var(--primary); color: white; padding: 16px; border-radius: 12px; text-align: center; margin-bottom: 12px; }
+    .logo-img { max-height: 60px; width: auto; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; }
     header h1 { margin: 0; font-size: 1.4rem; }
     header p { margin: 4px 0 0 0; opacity: 0.85; font-size: 0.9rem; }
     
@@ -36,9 +37,11 @@
     .item-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .item-controls select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; flex: 1; }
     
-    .toggles-box { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; font-size: 0.85rem; }
-    .toggles-box label { display: inline-flex; align-items: center; gap: 4px; font-weight: normal; margin-bottom: 0; cursor: pointer; }
-    
+    .toggles-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+    .toggle-pill { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; user-select: none; }
+    .toggle-pill.active { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .toggle-pill.inactive { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+
     .qty-controls { display: flex; align-items: center; gap: 8px; }
     .qty-btn { width: 34px; height: 34px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
     .qty-btn:active { background: #bbb; }
@@ -76,20 +79,23 @@
     .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 8px; margin-bottom: 10px; font-size: 0.9rem; }
     .addon-box { background: #fff7ed; border: 2px dashed #f97316; padding: 12px; border-radius: 8px; margin-top: 16px; }
     
-    /* Modal Overlay */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 340px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
     .hidden { display: none !important; }
-    footer { text-align: center; margin-top: 20px; }
+    
+    /* Footer Padding to prevent mobile browser bar overlap */
+    footer { text-align: center; margin-top: 20px; padding-bottom: 60px; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <header>
-    <h1>Bowls Club Chippy Orders</h1>
-    <p>Friday Night Order Manager</p>
+    <!-- Logo Slot (Place logo.png in same folder or edit src) -->
+    <img src="logo.png" alt="Club Logo" class="logo-img" onerror="this.style.display='none'">
+    <h1>SOBG Chippy Orders</h1>
+    <p>Order Manager</p>
   </header>
 
   <div class="nav-tabs">
@@ -154,7 +160,7 @@
 
     <hr style="margin: 20px 0;">
 
-    <button class="btn btn-danger" onclick="endFridaySession()">End Friday Session & Clear Database</button>
+    <button class="btn btn-danger" onclick="endFridaySession()">End Session & Clear Database</button>
   </div>
 
   <footer>
@@ -178,7 +184,7 @@
 <!-- Firebase SDKs -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update, remove, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, push, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC4Ysq0-OMJZyNZfaO8a612vjMzQ86Oz5Y",
@@ -198,22 +204,25 @@
   const metaRef = ref(db, "session_meta");
 
   const burgerModifiersList = [
-    { id: 'no_cheese', label: 'No Cheese' },
-    { id: 'lettuce', label: '+ Lettuce' },
-    { id: 'tomato', label: '+ Tomato' },
-    { id: 'onion', label: '+ Onion' },
-    { id: 'no_mayo', label: 'No Mayo' },
-    { id: 'no_ketchup', label: 'No Ketchup' }
+    { id: 'cheese', posLabel: 'Cheese', negLabel: 'No Cheese' },
+    { id: 'lettuce', posLabel: 'Lettuce', negLabel: 'No Lettuce' },
+    { id: 'tomato', posLabel: 'Tomato', negLabel: 'No Tomato' },
+    { id: 'onion', posLabel: 'Onion', negLabel: 'No Onion' },
+    { id: 'mayo', posLabel: 'Mayo', negLabel: 'No Mayo' },
+    { id: 'ketchup', posLabel: 'Ketchup', negLabel: 'No Ketchup' }
   ];
 
   const menuConfig = [
-    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, sv: true },
+    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true },
     { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true },
     { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true },
     { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true },
     { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true },
     { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, burgerMods: true, sv: true },
     { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true },
+    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true },
+    { id: 'chips', name: 'Chips', price: 2.50, sv: true },
+    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true },
     { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false },
     { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false },
     { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false }
@@ -230,12 +239,12 @@
     if (item.sv) { row.salt = true; row.vinegar = true; }
     if (item.burgerMods) {
       row.mods = {
-        no_cheese: false,
+        cheese: true,
         lettuce: true,
         tomato: true,
         onion: true,
-        no_mayo: false,
-        no_ketchup: false
+        mayo: false,
+        ketchup: false
       };
     }
     return row;
@@ -274,15 +283,22 @@
         let togglesHtml = '';
         if (item.sv) {
           togglesHtml += `
-            <label><input type="checkbox" ${row.salt ? 'checked' : ''} onchange="window.updateToggle('${item.id}', ${idx}, 'salt', this.checked)"> Salt</label>
-            <label><input type="checkbox" ${row.vinegar ? 'checked' : ''} onchange="window.updateToggle('${item.id}', ${idx}, 'vinegar', this.checked)"> Vinegar</label>
+            <div class="toggle-pill ${row.salt ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'salt', ${!row.salt})">
+              ${row.salt ? '✅ Salt' : '❌ No Salt'}
+            </div>
+            <div class="toggle-pill ${row.vinegar ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'vinegar', ${!row.vinegar})">
+              ${row.vinegar ? '✅ Vinegar' : '❌ No Vinegar'}
+            </div>
           `;
         }
 
         if (item.burgerMods && row.mods) {
           burgerModifiersList.forEach(m => {
+            const isVal = row.mods[m.id];
             togglesHtml += `
-              <label><input type="checkbox" ${row.mods[m.id] ? 'checked' : ''} onchange="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', this.checked)"> ${m.label}</label>
+              <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', ${!isVal})">
+                ${isVal ? '✅ ' + m.posLabel : '❌ ' + m.negLabel}
+              </div>
             `;
           });
         }
@@ -304,7 +320,7 @@
       });
 
       const addRowBtn = (item.variants || item.sv || item.burgerMods)
-        ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another Customization</button>` 
+        ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another ${item.name} (Different Options)</button>` 
         : '';
 
       itemEl.innerHTML = `
@@ -329,13 +345,15 @@
     formState[itemId][rowIdx].variant = val;
   };
 
-  window.updateToggle = function(itemId, rowIdx, key, checked) {
-    formState[itemId][rowIdx][key] = checked;
+  window.updateToggle = function(itemId, rowIdx, key, val) {
+    formState[itemId][rowIdx][key] = val;
+    renderMenu();
   };
 
-  window.updateBurgerMod = function(itemId, rowIdx, modId, checked) {
+  window.updateBurgerMod = function(itemId, rowIdx, modId, val) {
     if (!formState[itemId][rowIdx].mods) formState[itemId][rowIdx].mods = {};
-    formState[itemId][rowIdx].mods[modId] = checked;
+    formState[itemId][rowIdx].mods[modId] = val;
+    renderMenu();
   };
 
   window.addVariantRow = function(itemId) {
@@ -385,14 +403,15 @@
 
     if (itemConfig.burgerMods && row.mods) {
       burgerModifiersList.forEach(m => {
-        if (row.mods[m.id]) options.push(m.label);
+        if (row.mods[m.id]) options.push(m.posLabel);
+        else options.push(m.negLabel);
       });
     }
 
     return options.length > 0 ? options.join(', ') : '';
   }
 
-  window.submitOrder = async function() {
+  window.submitOrder = function() {
     const name = document.getElementById('customerName').value.trim();
     if (!name) { alert('Please enter a name for the order!'); return; }
 
@@ -421,56 +440,47 @@
     const items = Object.values(aggregatedItems);
     if (items.length === 0) { alert('Please select at least one item!'); return; }
 
-    const submitBtn = document.getElementById('btn-submit-order');
-    submitBtn.disabled = true;
-    submitBtn.innerText = "Submitting...";
+    const isLockedNow = Boolean(sessionMeta && sessionMeta.mainLocked);
 
-    try {
-      // Direct Live Server Check against Firebase
-      const liveMetaSnap = await get(metaRef);
-      const liveMeta = liveMetaSnap.val() || {};
-      const isMainLockedOnServer = Boolean(liveMeta.mainLocked);
+    const total = calculateTotal();
+    let finalStatus = 'unpaid';
+    let paidAmount = 0;
+    let dueAmount = total;
+    let refundAmount = 0;
+    const isEditing = editingOrderMeta !== null;
 
-      const total = calculateTotal();
-      let finalStatus = 'unpaid';
-      let paidAmount = 0;
-      let dueAmount = total;
-      let refundAmount = 0;
-      const isEditing = editingOrderMeta !== null;
-
-      if (isEditing) {
-        paidAmount = editingOrderMeta.paidAmount || 0;
-        
-        if (total === paidAmount) {
-          finalStatus = 'paid';
-          dueAmount = 0;
-          refundAmount = 0;
-        } else if (total > paidAmount) {
-          dueAmount = total - paidAmount;
-          finalStatus = paidAmount > 0 ? 'partial_due' : 'unpaid';
-          refundAmount = 0;
-        } else {
-          refundAmount = paidAmount - total;
-          dueAmount = 0;
-          finalStatus = 'refund_due';
-        }
+    if (isEditing) {
+      paidAmount = editingOrderMeta.paidAmount || 0;
+      
+      if (total === paidAmount) {
+        finalStatus = 'paid';
+        dueAmount = 0;
+        refundAmount = 0;
+      } else if (total > paidAmount) {
+        dueAmount = total - paidAmount;
+        finalStatus = paidAmount > 0 ? 'partial_due' : 'unpaid';
+        refundAmount = 0;
+      } else {
+        refundAmount = paidAmount - total;
+        dueAmount = 0;
+        finalStatus = 'refund_due';
       }
+    }
 
-      const orderData = {
-        customerName: name,
-        items: items,
-        total: total,
-        status: finalStatus,
-        paidAmount: paidAmount,
-        dueAmount: dueAmount,
-        refundAmount: refundAmount,
-        handedOut: false,
-        isLate: isEditing ? (editingOrderMeta.isLate || false) : isMainLockedOnServer,
-        timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
-      };
+    const orderData = {
+      customerName: name,
+      items: items,
+      total: total,
+      status: finalStatus,
+      paidAmount: paidAmount,
+      dueAmount: dueAmount,
+      refundAmount: refundAmount,
+      handedOut: false,
+      isLate: isEditing ? (editingOrderMeta.isLate || false) : isLockedNow,
+      timestamp: isEditing ? (editingOrderMeta.timestamp || Date.now()) : Date.now()
+    };
 
-      await push(ordersRef, orderData);
-
+    push(ordersRef, orderData).then(() => {
       if (isEditing) {
         const diff = total - editingOrderMeta.originalTotal;
         if (diff > 0) {
@@ -480,7 +490,7 @@
         } else {
           alert(`Order updated for ${name}!\n\nTotal remains £${total.toFixed(2)}.`);
         }
-      } else if (isMainLockedOnServer) {
+      } else if (isLockedNow) {
         alert(`⚠️ LATE ORDER NOTICE\n\nHi ${name}, the main chippy order for tonight has already been locked in and sent.\n\nWe have received your order and will try to add it as a late add-on, but please note it may not be possible to fulfill!`);
       } else {
         alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment.`);
@@ -491,13 +501,9 @@
       editingOrderMeta = null;
       renderMenu();
       calculateTotal();
-    } catch (err) {
-      console.error("Submission Error:", err);
-      alert("Error submitting order. Please check your connection and try again.");
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Submit Order";
-    }
+    }).catch(err => {
+      alert("Error submitting order: " + err.message);
+    });
   };
 
   // PIN MODAL HANDLERS
@@ -663,13 +669,15 @@
 
     const text = document.getElementById('chippy-summary-text').innerText;
     
+    // Save state to Firebase
     set(metaRef, {
       mainLocked: true,
       lockTimestamp: Date.now()
-    });
-
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Main Chippy summary locked & copied to clipboard!\n\nOpening WhatsApp...');
+    }).then(() => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+      alert('Main Chippy summary locked!\n\nOpening WhatsApp...');
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     });
   };
@@ -682,10 +690,11 @@
 
   window.sendAddonOrder = function() {
     const text = document.getElementById('addon-summary-text').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Add-on order summary copied to clipboard!\n\nOpening WhatsApp...');
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    alert('Add-on order summary ready!\n\nOpening WhatsApp...');
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   function renderOrganizerView() {
@@ -833,7 +842,7 @@
             }
             if (cfg.burgerMods && newRow.mods) {
               burgerModifiersList.forEach(m => {
-                newRow.mods[m.id] = opts.includes(m.label);
+                newRow.mods[m.id] = opts.includes(m.posLabel);
               });
             }
           }
@@ -863,7 +872,7 @@
       return;
     }
 
-    if (confirm('All orders are resolved! Download PDF summary report and reset session for next week?')) {
+    if (confirm('All orders are resolved! Download PDF summary report and reset session?')) {
       downloadPdfReport();
       remove(ordersRef);
       remove(metaRef);
@@ -878,7 +887,7 @@
     const dateStr = today.toLocaleDateString('en-GB').replace(/\//g, '-');
     
     doc.setFontSize(18);
-    doc.text("Bowls Club Chippy Order Summary", 14, 20);
+    doc.text("SOBG Chippy Order Summary", 14, 20);
     doc.setFontSize(11);
     doc.text(`Date: ${dateStr}`, 14, 28);
     
@@ -905,7 +914,7 @@
     doc.setFontSize(12);
     doc.text(`Total Revenue Collected: £${totalEarned.toFixed(2)}`, 14, y);
 
-    doc.save(`Bowls Club Chippy Order ${dateStr}.pdf`);
+    doc.save(`SOBG Chippy Order ${dateStr}.pdf`);
   }
 
   window.switchTab = function(tab) {
