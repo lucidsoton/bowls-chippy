@@ -30,6 +30,18 @@
     label { display: block; font-weight: bold; margin-bottom: 6px; }
     input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
     
+    /* High-Visibility Name Entry Box */
+    .name-input-box {
+      background: #f0fdf4;
+      border: 2px solid #16a34a !important;
+      font-weight: bold;
+      color: #14532d;
+    }
+    .name-input-box::placeholder {
+      font-weight: normal;
+      color: #86efac;
+    }
+
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
     .item-price { color: var(--primary); }
@@ -106,8 +118,8 @@
   <!-- ORDER FORM VIEW -->
   <div id="view-order" class="view-card">
     <div class="input-group">
-      <label for="customerName">Your Name(s):</label>
-      <input type="text" id="customerName" placeholder="e.g. Dave & Sarah">
+      <label for="customerName" style="color:#16a34a; font-size:1.05rem;">👤 Your Name(s):</label>
+      <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave & Sarah">
     </div>
 
     <h3>Menu Items</h3>
@@ -212,13 +224,21 @@
     { id: 'ketchup', posLabel: 'Ketchup', negLabel: 'No Ketchup' }
   ];
 
+  const chickenModifiersList = [
+    { id: 'lettuce', posLabel: 'Lettuce', negLabel: 'No Lettuce' },
+    { id: 'tomato', posLabel: 'Tomato', negLabel: 'No Tomato' },
+    { id: 'onion', posLabel: 'Onion', negLabel: 'No Onion' },
+    { id: 'mayo', posLabel: 'Mayo', negLabel: 'No Mayo' },
+    { id: 'ketchup', posLabel: 'Ketchup', negLabel: 'No Ketchup' }
+  ];
+
   const menuConfig = [
     { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true },
     { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true },
     { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true },
     { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true },
     { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true },
-    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, burgerMods: true, sv: true },
+    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true },
     { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true },
     { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true },
     { id: 'chips', name: 'Chips', price: 2.50, sv: true },
@@ -237,16 +257,28 @@
     const row = { qty: 0 };
     if (item.variants) row.variant = item.variants[0];
     if (item.sv) { row.salt = true; row.vinegar = true; }
+    
     if (item.burgerMods) {
       row.mods = {
         cheese: true,
         lettuce: true,
         tomato: true,
         onion: true,
-        mayo: false,
-        ketchup: false
+        mayo: true,
+        ketchup: true
       };
     }
+
+    if (item.chickenMods) {
+      row.mods = {
+        lettuce: true,
+        tomato: true,
+        onion: true,
+        mayo: true,
+        ketchup: true
+      };
+    }
+
     return row;
   }
 
@@ -292,8 +324,10 @@
           `;
         }
 
-        if (item.burgerMods && row.mods) {
-          burgerModifiersList.forEach(m => {
+        const modsList = item.burgerMods ? burgerModifiersList : (item.chickenMods ? chickenModifiersList : null);
+
+        if (modsList && row.mods) {
+          modsList.forEach(m => {
             const isVal = row.mods[m.id];
             togglesHtml += `
               <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', ${!isVal})">
@@ -319,7 +353,7 @@
         `;
       });
 
-      const addRowBtn = (item.variants || item.sv || item.burgerMods)
+      const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods)
         ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another ${item.name} (Different Options)</button>` 
         : '';
 
@@ -401,8 +435,10 @@
       else if (!row.vinegar) options.push('No Vinegar');
     }
 
-    if (itemConfig.burgerMods && row.mods) {
-      burgerModifiersList.forEach(m => {
+    const modsList = itemConfig.burgerMods ? burgerModifiersList : (itemConfig.chickenMods ? chickenModifiersList : null);
+
+    if (modsList && row.mods) {
+      modsList.forEach(m => {
         if (row.mods[m.id]) options.push(m.posLabel);
         else options.push(m.negLabel);
       });
@@ -840,8 +876,9 @@
               else if (opts.includes('No Salt')) { newRow.salt = false; newRow.vinegar = true; }
               else if (opts.includes('No Vinegar')) { newRow.salt = true; newRow.vinegar = false; }
             }
-            if (cfg.burgerMods && newRow.mods) {
-              burgerModifiersList.forEach(m => {
+            if ((cfg.burgerMods || cfg.chickenMods) && newRow.mods) {
+              const mList = cfg.burgerMods ? burgerModifiersList : chickenModifiersList;
+              mList.forEach(m => {
                 newRow.mods[m.id] = opts.includes(m.posLabel);
               });
             }
