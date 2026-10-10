@@ -30,16 +30,29 @@
     label { display: block; font-weight: bold; margin-bottom: 6px; }
     input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
     
-    /* High-Visibility Name Entry Box */
+    /* Clean, High-Visibility Name Entry Styling */
     .name-input-box {
-      background: #f0fdf4;
-      border: 2px solid #16a34a !important;
+      background: #f8fafc;
+      border: 2px solid #cbd5e1 !important;
       font-weight: bold;
-      color: #14532d;
+      color: #0f172a;
+      transition: all 0.2s ease;
     }
-    .name-input-box::placeholder {
-      font-weight: normal;
-      color: #86efac;
+    .name-input-box:focus {
+      background: #ffffff !important;
+      border-color: #334155 !important;
+      outline: none;
+    }
+    .name-input-box.input-error {
+      background: #fee2e2 !important;
+      border-color: #dc2626 !important;
+      animation: shake 0.3s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
     }
 
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
@@ -89,6 +102,47 @@
     .badge-locked { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 
     .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+    
+    /* Live Order Summary Box for Customer View */
+    .customer-summary-box {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-top: 16px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+    .customer-summary-title {
+      font-weight: bold;
+      color: #93c5fd;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.95rem;
+    }
+    .customer-summary-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .customer-summary-list li {
+      padding: 3px 0;
+      border-bottom: 1px dashed #334155;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .customer-summary-list li:last-child {
+      border-bottom: none;
+    }
+    .customer-summary-empty {
+      color: #94a3b8;
+      font-style: italic;
+      margin: 0;
+    }
+
     .addon-box { background: #fff7ed; border: 2px dashed #f97316; padding: 12px; border-radius: 8px; margin-top: 16px; }
     
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -112,29 +166,37 @@
 
   <div class="nav-tabs">
     <button id="btn-tab-order" class="tab-btn active" onclick="switchTab('order')">Place Order</button>
-    <button id="btn-tab-organizer" class="tab-btn hidden" onclick="switchTab('organizer')">Organizer View</button>
+    <button id="btn-tab-organiser" class="tab-btn hidden" onclick="switchTab('organiser')">Organiser View</button>
   </div>
 
   <!-- ORDER FORM VIEW -->
   <div id="view-order" class="view-card">
     <div class="input-group">
-      <label for="customerName" style="color:#16a34a; font-size:1.05rem;">👤 Your Name(s):</label>
-      <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave & Sarah">
+      <label for="customerName" style="color:#0f172a; font-size:1.05rem;">👤 Your Name(s):</label>
+      <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave & Sarah" oninput="this.classList.remove('input-error')">
     </div>
 
     <h3>Menu Items</h3>
     <div id="menu-container"></div>
 
-    <div style="font-size: 1.3rem; font-weight: bold; margin: 16px 0; text-align: right;">
+    <!-- Live Order Summary Preview -->
+    <div class="customer-summary-box">
+      <div class="customer-summary-title">📋 Live Order Summary</div>
+      <ul id="customer-summary-list" class="customer-summary-list">
+        <p class="customer-summary-empty">Your order is currently empty. Tap + on any item above to add it to your order.</p>
+      </ul>
+    </div>
+
+    <div style="font-size: 1.3rem; font-weight: bold; margin: 12px 0 16px 0; text-align: right;">
       Total: £<span id="order-total">0.00</span>
     </div>
 
     <button id="btn-submit-order" class="btn btn-primary" onclick="submitOrder()">Submit Order</button>
   </div>
 
-  <!-- ORGANIZER VIEW -->
-  <div id="view-organizer" class="view-card hidden">
-    <h2>Organizer Dashboard</h2>
+  <!-- ORGANISER VIEW -->
+  <div id="view-organiser" class="view-card hidden">
+    <h2>Organiser Dashboard</h2>
 
     <div class="stats-card">
       <div class="stat-box"><span>Collected</span><strong id="stat-collected">£0.00</strong></div>
@@ -176,8 +238,8 @@
   </div>
 
   <footer>
-    <div id="organizer-login-wrapper">
-      <button class="btn btn-access" onclick="openPinModal()">🔒 Organizer Dashboard Access</button>
+    <div id="organiser-login-wrapper">
+      <button class="btn btn-access" onclick="openPinModal()">🔒 Organiser Dashboard Access</button>
     </div>
   </footer>
 </div>
@@ -185,9 +247,9 @@
 <!-- PIN MODAL -->
 <div id="pin-modal" class="modal-overlay hidden" onclick="closePinModalOnBackdrop(event)">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <h3 style="margin-top:0; margin-bottom:12px;">Organizer Access</h3>
+    <h3 style="margin-top:0; margin-bottom:12px;">Organiser Access</h3>
     <div class="input-group">
-      <input type="text" inputmode="numeric" pattern="[0-9]*" id="organizer-pin-input" placeholder="Enter PIN" onkeydown="handlePinKeydown(event)">
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="organiser-pin-input" placeholder="Enter PIN" onkeydown="handlePinKeydown(event)">
     </div>
     <button class="btn btn-primary" onclick="verifyPin()">Unlock</button>
   </div>
@@ -208,7 +270,8 @@
     appId: "1:80890299075:web:67806a379254fe7054d876"
   };
 
-  const ORGANIZER_PIN = "1234";
+  const ORGANISER_PIN = "1234";
+  const CHIPPY_PHONE = "447895424764";
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -377,17 +440,20 @@
 
   window.updateVariant = function(itemId, rowIdx, val) {
     formState[itemId][rowIdx].variant = val;
+    calculateTotal();
   };
 
   window.updateToggle = function(itemId, rowIdx, key, val) {
     formState[itemId][rowIdx][key] = val;
     renderMenu();
+    calculateTotal();
   };
 
   window.updateBurgerMod = function(itemId, rowIdx, modId, val) {
     if (!formState[itemId][rowIdx].mods) formState[itemId][rowIdx].mods = {};
     formState[itemId][rowIdx].mods[modId] = val;
     renderMenu();
+    calculateTotal();
   };
 
   window.addVariantRow = function(itemId) {
@@ -416,13 +482,47 @@
 
   function calculateTotal() {
     let total = 0;
+    const summaryItems = [];
+
     menuConfig.forEach(item => {
       formState[item.id].forEach(row => {
-        if (row.qty > 0) total += row.qty * item.price;
+        if (row.qty > 0) {
+          const rowTotal = row.qty * item.price;
+          total += rowTotal;
+          const optStr = buildOptionsString(item, row);
+          summaryItems.push({
+            qty: row.qty,
+            name: item.name,
+            options: optStr,
+            totalPrice: rowTotal
+          });
+        }
       });
     });
+
     document.getElementById('order-total').innerText = total.toFixed(2);
+    renderCustomerSummary(summaryItems);
     return total;
+  }
+
+  function renderCustomerSummary(items) {
+    const listEl = document.getElementById('customer-summary-list');
+    listEl.innerHTML = '';
+
+    if (items.length === 0) {
+      listEl.innerHTML = '<p class="customer-summary-empty">Your order is currently empty. Tap + on any item above to add it to your order.</p>';
+      return;
+    }
+
+    items.forEach(item => {
+      const li = document.createElement('li');
+      const optHtml = item.options ? `<span style="color:#94a3b8; font-size:0.8rem;"> (${item.options})</span>` : '';
+      li.innerHTML = `
+        <span><strong>${item.qty}x</strong> ${item.name}${optHtml}</span>
+        <span style="font-weight:600; color:#86efac;">£${item.totalPrice.toFixed(2)}</span>
+      `;
+      listEl.appendChild(li);
+    });
   }
 
   function buildOptionsString(itemConfig, row) {
@@ -448,8 +548,15 @@
   }
 
   window.submitOrder = function() {
-    const name = document.getElementById('customerName').value.trim();
-    if (!name) { alert('Please enter a name for the order!'); return; }
+    const nameInput = document.getElementById('customerName');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      nameInput.classList.add('input-error');
+      nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      nameInput.focus();
+      return;
+    }
 
     const aggregatedItems = {};
 
@@ -529,14 +636,18 @@
       } else if (isLockedNow) {
         alert(`⚠️ LATE ORDER NOTICE\n\nHi ${name}, the main chippy order for tonight has already been locked in and sent.\n\nWe have received your order and will try to add it as a late add-on, but please note it may not be possible to fulfill!`);
       } else {
-        alert(`Order saved for ${name}!\n\nPlease see organizer to settle payment.`);
+        alert(`Order saved for ${name}!\n\nPlease see organiser to settle payment.`);
       }
 
-      document.getElementById('customerName').value = '';
+      // Reset form and scroll smoothly back to top
+      nameInput.value = '';
+      nameInput.classList.remove('input-error');
       initFormState();
       editingOrderMeta = null;
       renderMenu();
       calculateTotal();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }).catch(err => {
       alert("Error submitting order: " + err.message);
     });
@@ -544,9 +655,9 @@
 
   // PIN MODAL HANDLERS
   window.openPinModal = function() {
-    document.getElementById('organizer-pin-input').value = '';
+    document.getElementById('organiser-pin-input').value = '';
     document.getElementById('pin-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('organizer-pin-input').focus(), 100);
+    setTimeout(() => document.getElementById('organiser-pin-input').focus(), 100);
   };
 
   window.closePinModal = function() {
@@ -566,12 +677,12 @@
   };
 
   window.verifyPin = function() {
-    const pin = document.getElementById('organizer-pin-input').value.trim();
-    if (pin === ORGANIZER_PIN) {
+    const pin = document.getElementById('organiser-pin-input').value.trim();
+    if (pin === ORGANISER_PIN) {
       closePinModal();
-      document.getElementById('btn-tab-organizer').classList.remove('hidden');
-      document.getElementById('organizer-login-wrapper').classList.add('hidden');
-      switchTab('organizer');
+      document.getElementById('btn-tab-organiser').classList.remove('hidden');
+      document.getElementById('organiser-login-wrapper').classList.add('hidden');
+      switchTab('organiser');
     } else {
       alert('Incorrect PIN!');
     }
@@ -585,7 +696,7 @@
 
   onValue(ordersRef, (snapshot) => {
     currentOrders = snapshot.val() || {};
-    renderOrganizerView();
+    renderOrganiserView();
     renderSummaries();
   });
 
@@ -714,7 +825,8 @@
         navigator.clipboard.writeText(text).catch(() => {});
       }
       alert('Main Chippy summary locked!\n\nOpening WhatsApp...');
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      const phoneParam = CHIPPY_PHONE ? `phone=${CHIPPY_PHONE}&` : '';
+      window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`, '_blank');
     });
   };
 
@@ -730,10 +842,11 @@
       navigator.clipboard.writeText(text).catch(() => {});
     }
     alert('Add-on order summary ready!\n\nOpening WhatsApp...');
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    const phoneParam = CHIPPY_PHONE ? `phone=${CHIPPY_PHONE}&` : '';
+    window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  function renderOrganizerView() {
+  function renderOrganiserView() {
     const container = document.getElementById('orders-list');
     container.innerHTML = '';
 
@@ -959,11 +1072,11 @@
     if (tab === 'order') {
       document.getElementById('btn-tab-order').classList.add('active');
       document.getElementById('view-order').classList.remove('hidden');
-      document.getElementById('view-organizer').classList.add('hidden');
+      document.getElementById('view-organiser').classList.add('hidden');
     } else {
-      document.getElementById('btn-tab-organizer').classList.add('active');
+      document.getElementById('btn-tab-organiser').classList.add('active');
       document.getElementById('view-order').classList.add('hidden');
-      document.getElementById('view-organizer').classList.remove('hidden');
+      document.getElementById('view-organiser').classList.remove('hidden');
     }
   };
 
