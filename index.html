@@ -4,6 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SOBG Chippy Orders</title>
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SOBG Chippy">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Dual Visual Assets -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="app-icon.png">
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
@@ -67,6 +79,11 @@
     .toggle-pill.active { background: #dcfce7; color: #15803d; border-color: #86efac; }
     .toggle-pill.inactive { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
 
+    /* Small Chips Pill Toggle */
+    .chips-toggle-group { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; font-size: 0.85rem; font-weight: 600; user-select: none; }
+    .chips-toggle-btn { padding: 6px 10px; border: none; background: #f1f5f9; color: #475569; cursor: pointer; }
+    .chips-toggle-btn.active { background: var(--primary); color: white; }
+
     .qty-controls { display: flex; align-items: center; gap: 8px; }
     .qty-btn { width: 34px; height: 34px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
     .qty-btn:active { background: #bbb; }
@@ -82,10 +99,16 @@
     .btn-warning { background: #d97706; color: white; }
     .btn-access { background: #334155; color: white; border: 1px solid #475569; font-size: 0.95rem; padding: 10px; }
     
-    .stats-card { display: flex; gap: 8px; text-align: center; margin-bottom: 16px; }
+    .stats-card { display: flex; gap: 8px; text-align: center; margin-bottom: 8px; }
     .stat-box { flex: 1; background: #f1f5f9; padding: 10px 4px; border-radius: 8px; border: 1px solid #cbd5e1; }
     .stat-box span { display: block; font-size: 0.75rem; color: #475569; font-weight: bold; text-transform: uppercase; }
     .stat-box strong { font-size: 1.1rem; color: var(--primary); }
+
+    /* Half-Height Inline Live Stats Row */
+    .stats-card-secondary { display: flex; gap: 8px; text-align: center; margin-bottom: 16px; }
+    .stat-box-secondary { flex: 1; background: #e2e8f0; padding: 5px 4px; border-radius: 6px; border: 1px solid #cbd5e1; }
+    .stat-box-secondary span { display: block; font-size: 0.65rem; color: #334155; font-weight: bold; text-transform: uppercase; }
+    .stat-box-secondary strong { font-size: 0.95rem; color: var(--primary); }
 
     .order-card { border-left: 5px solid #cbd5e1; padding: 12px; margin-bottom: 10px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .order-card.paid { border-left-color: #16a34a; }
@@ -158,7 +181,6 @@
 
 <div class="container">
   <header>
-    <!-- Logo Slot (Place logo.png in same folder or edit src) -->
     <img src="logo.png" alt="Club Logo" class="logo-img" onerror="this.style.display='none'">
     <h1>SOBG Chippy Orders</h1>
     <p>Order Manager</p>
@@ -202,6 +224,13 @@
       <div class="stat-box"><span>Collected</span><strong id="stat-collected">£0.00</strong></div>
       <div class="stat-box"><span>Unpaid / Due</span><strong id="stat-unpaid" style="color:#dc2626;">£0.00</strong></div>
       <div class="stat-box"><span>Night Total</span><strong id="stat-total">£0.00</strong></div>
+    </div>
+
+    <!-- Half-Height Inline Live Stats Row -->
+    <div class="stats-card-secondary">
+      <div class="stat-box-secondary"><span>Orders</span><strong id="stat-orders">0</strong></div>
+      <div class="stat-box-secondary"><span>Meals</span><strong id="stat-meals">0</strong></div>
+      <div class="stat-box-secondary"><span>Extras</span><strong id="stat-extras">0</strong></div>
     </div>
 
     <!-- MAIN CHIPPY ORDER PANEL -->
@@ -296,16 +325,16 @@
   ];
 
   const menuConfig = [
-    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true },
-    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true },
-    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true },
-    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true },
-    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true },
-    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true },
-    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true },
-    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true },
-    { id: 'chips', name: 'Chips', price: 2.50, sv: true },
-    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true },
+    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true, chipsToggle: true },
+    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true, chipsToggle: true },
+    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true, chipsToggle: true },
+    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true },
+    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true },
+    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true },
+    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true },
+    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true },
+    { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true },
+    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true, chipsToggle: true },
     { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false },
     { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false },
     { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false }
@@ -320,26 +349,14 @@
     const row = { qty: 0 };
     if (item.variants) row.variant = item.variants[0];
     if (item.sv) { row.salt = true; row.vinegar = true; }
+    if (item.chipsToggle) row.smallChips = false; // false = Regular, true = Small
     
     if (item.burgerMods) {
-      row.mods = {
-        cheese: true,
-        lettuce: true,
-        tomato: true,
-        onion: true,
-        mayo: true,
-        ketchup: true
-      };
+      row.mods = { cheese: true, lettuce: true, tomato: true, onion: true, mayo: true, ketchup: true };
     }
 
     if (item.chickenMods) {
-      row.mods = {
-        lettuce: true,
-        tomato: true,
-        onion: true,
-        mayo: true,
-        ketchup: true
-      };
+      row.mods = { lettuce: true, tomato: true, onion: true, mayo: true, ketchup: true };
     }
 
     return row;
@@ -387,6 +404,15 @@
           `;
         }
 
+        if (item.chipsToggle) {
+          togglesHtml += `
+            <div class="chips-toggle-group">
+              <button type="button" class="chips-toggle-btn ${!row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, false)">Regular</button>
+              <button type="button" class="chips-toggle-btn ${row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, true)">Small</button>
+            </div>
+          `;
+        }
+
         const modsList = item.burgerMods ? burgerModifiersList : (item.chickenMods ? chickenModifiersList : null);
 
         if (modsList && row.mods) {
@@ -416,7 +442,7 @@
         `;
       });
 
-      const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods)
+      const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods || item.chipsToggle)
         ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another ${item.name} (Different Options)</button>` 
         : '';
 
@@ -445,6 +471,12 @@
 
   window.updateToggle = function(itemId, rowIdx, key, val) {
     formState[itemId][rowIdx][key] = val;
+    renderMenu();
+    calculateTotal();
+  };
+
+  window.updateChipsSize = function(itemId, rowIdx, isSmall) {
+    formState[itemId][rowIdx].smallChips = isSmall;
     renderMenu();
     calculateTotal();
   };
@@ -528,6 +560,10 @@
   function buildOptionsString(itemConfig, row) {
     const options = [];
     if (row.variant) options.push(row.variant);
+
+    if (itemConfig.chipsToggle && row.smallChips) {
+      options.push('Small Chips');
+    }
 
     if (itemConfig.sv) {
       if (!row.salt && !row.vinegar) options.push('No Salt & No Vinegar');
@@ -639,7 +675,6 @@
         alert(`Order saved for ${name}!\n\nPlease see organiser to settle payment.`);
       }
 
-      // Reset form and scroll smoothly back to top
       nameInput.value = '';
       nameInput.classList.remove('input-error');
       initFormState();
@@ -700,6 +735,16 @@
     renderSummaries();
   });
 
+  // Helper to format options with WhatsApp asterisks automatically
+  function formatOptionsForWhatsApp(optionsStr) {
+    if (!optionsStr) return '';
+    const parts = optionsStr.split(', ').map(p => {
+      const trimmed = p.trim();
+      return `*${trimmed}*`;
+    });
+    return ` (${parts.join(', ')})`;
+  }
+
   function renderSummaries() {
     const keys = Object.keys(currentOrders);
     
@@ -723,29 +768,74 @@
       }
     });
 
-    // Render Main Order Text
-    const mainTotals = {};
+    // Render Main Order Text with Categories and Double Line Spacing
+    const categories = {
+      "Burgers": ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips"],
+      "Fish": ["Fish & Chips", "Scampi & Chips", "Fishcake & Chips"],
+      "Sausage & Pies": ["Jumbo Sausage & Chips", "Pie & Chips", "Pea Fritter & Chips"],
+      "Sides & Extras": ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"]
+    };
+
+    const groupedTotals = {};
     let mainGrandTotal = 0;
 
     mainOrders.forEach(order => {
       order.items.forEach(item => {
-        const itemLabel = `${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
-        if (!mainTotals[itemLabel]) mainTotals[itemLabel] = { qty: 0, price: item.price };
-        mainTotals[itemLabel].qty += item.qty;
+        const optFormatted = formatOptionsForWhatsApp(item.options);
+        const itemKey = `${item.name}|${item.options || ''}`;
+        
+        if (!groupedTotals[itemKey]) {
+          groupedTotals[itemKey] = {
+            name: item.name,
+            options: item.options,
+            qty: 0,
+            price: item.price
+          };
+        }
+        groupedTotals[itemKey].qty += item.qty;
         mainGrandTotal += item.qty * item.price;
       });
     });
 
-    if (Object.keys(mainTotals).length === 0) {
+    if (Object.keys(groupedTotals).length === 0) {
       document.getElementById('chippy-summary-text').innerText = "No paid orders yet.";
     } else {
-      let mainText = `*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-      Object.keys(mainTotals).forEach(label => {
-        const lineTotal = mainTotals[label].qty * mainTotals[label].price;
-        mainText += `${mainTotals[label].qty}x ${label} (£${mainTotals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
+      let mainText = `Good evening! Please find the Bowls Club order below:\n\n*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
+      
+      const activeKeys = Object.keys(groupedTotals);
+      let catBlocks = [];
+
+      Object.keys(categories).forEach(catName => {
+        const catItems = activeKeys.filter(k => categories[catName].includes(groupedTotals[k].name));
+        if (catItems.length > 0) {
+          let blockLines = [];
+          catItems.forEach(k => {
+            const entry = groupedTotals[k];
+            const optFormatted = formatOptionsForWhatsApp(entry.options);
+            const lineTotal = entry.qty * entry.price;
+            blockLines.push(`${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`);
+          });
+          catBlocks.push(blockLines.join('\n'));
+        }
       });
-      mainText += `----------------------------------\n`;
-      mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n`;
+
+      // Catch any remaining items not explicitly in category lists
+      const categorizedKeys = Object.values(categories).flat();
+      const otherItems = activeKeys.filter(k => !categorizedKeys.includes(groupedTotals[k].name));
+      if (otherItems.length > 0) {
+        let blockLines = [];
+        otherItems.forEach(k => {
+          const entry = groupedTotals[k];
+          const optFormatted = formatOptionsForWhatsApp(entry.options);
+          const lineTotal = entry.qty * entry.price;
+          blockLines.push(`${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`);
+        });
+        catBlocks.push(blockLines.join('\n'));
+      }
+
+      mainText += catBlocks.join('\n\n') + `\n----------------------------------\n`;
+      mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
+      
       document.getElementById('chippy-summary-text').innerText = mainText;
     }
 
@@ -776,20 +866,24 @@
 
       addonOrders.forEach(order => {
         order.items.forEach(item => {
-          const itemLabel = `${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
-          if (!addonTotals[itemLabel]) addonTotals[itemLabel] = { qty: 0, price: item.price };
-          addonTotals[itemLabel].qty += item.qty;
+          const itemKey = `${item.name}|${item.options || ''}`;
+          if (!addonTotals[itemKey]) {
+            addonTotals[itemKey] = { name: item.name, options: item.options, qty: 0, price: item.price };
+          }
+          addonTotals[itemKey].qty += item.qty;
           addonGrandTotal += item.qty * item.price;
         });
       });
 
-      let addonText = `*ADD-ON TO BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-      Object.keys(addonTotals).forEach(label => {
-        const lineTotal = addonTotals[label].qty * addonTotals[label].price;
-        addonText += `${addonTotals[label].qty}x ${label} (£${addonTotals[label].price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
+      let addonText = `Good evening! Please find an add-on to the Bowls Club order below:\n\n*ADD-ON TO BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
+      Object.keys(addonTotals).forEach(k => {
+        const entry = addonTotals[k];
+        const optFormatted = formatOptionsForWhatsApp(entry.options);
+        const lineTotal = entry.qty * entry.price;
+        addonText += `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
       });
       addonText += `----------------------------------\n`;
-      addonText += `*ADDITIONAL PAYMENT:* *£${addonGrandTotal.toFixed(2)}*\n`;
+      addonText += `*ADDITIONAL PAYMENT:* *£${addonGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
 
       document.getElementById('addon-summary-text').innerText = addonText;
     } else {
@@ -816,7 +910,6 @@
 
     const text = document.getElementById('chippy-summary-text').innerText;
     
-    // Save state to Firebase
     set(metaRef, {
       mainLocked: true,
       lockTimestamp: Date.now()
@@ -854,16 +947,27 @@
     let totalCollected = 0;
     let totalUnpaid = 0;
     let nightTotal = 0;
+    let totalOrdersCount = keys.length;
+    let totalMealsCount = 0;
+    let totalExtrasCount = 0;
 
     if (keys.length === 0) {
       container.innerHTML = '<p>No orders submitted yet.</p>';
-      updateStats(0, 0, 0);
+      updateStats(0, 0, 0, 0, 0, 0);
       return;
     }
 
     keys.forEach(key => {
       const order = currentOrders[key];
       nightTotal += order.total;
+
+      order.items.forEach(item => {
+        if (item.name.toLowerCase().includes('extra') || item.name.toLowerCase().includes('sauce') || item.name.toLowerCase().includes('peas') || item.name.toLowerCase().includes('beans')) {
+          totalExtrasCount += item.qty;
+        } else {
+          totalMealsCount += item.qty;
+        }
+      });
 
       const paidAmt = order.paidAmount !== undefined ? order.paidAmount : (order.status === 'paid' ? order.total : 0);
       const due = order.dueAmount !== undefined ? order.dueAmount : Math.max(0, order.total - paidAmt);
@@ -905,13 +1009,16 @@
       container.appendChild(card);
     });
 
-    updateStats(totalCollected, totalUnpaid, nightTotal);
+    updateStats(totalCollected, totalUnpaid, nightTotal, totalOrdersCount, totalMealsCount, totalExtrasCount);
   }
 
-  function updateStats(collected, unpaid, total) {
+  function updateStats(collected, unpaid, total, orders, meals, extras) {
     document.getElementById('stat-collected').innerText = `£${collected.toFixed(2)}`;
     document.getElementById('stat-unpaid').innerText = `£${unpaid.toFixed(2)}`;
     document.getElementById('stat-total').innerText = `£${total.toFixed(2)}`;
+    document.getElementById('stat-orders').innerText = orders;
+    document.getElementById('stat-meals').innerText = meals;
+    document.getElementById('stat-extras').innerText = extras;
   }
 
   window.markPaid = function(key) { 
@@ -983,6 +1090,9 @@
             if (cfg.variants) {
               const matchedVar = cfg.variants.find(v => opts.includes(v));
               if (matchedVar) newRow.variant = matchedVar;
+            }
+            if (cfg.chipsToggle) {
+              newRow.smallChips = opts.includes('Small Chips');
             }
             if (cfg.sv) {
               if (opts.includes('No Salt & No Vinegar')) { newRow.salt = false; newRow.vinegar = false; }
