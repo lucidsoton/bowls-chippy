@@ -735,12 +735,21 @@
     renderSummaries();
   });
 
-  // Helper to format options with WhatsApp asterisks automatically
+  // Target ONLY negatives, dropdown variants, and small chips for WhatsApp bolding
   function formatOptionsForWhatsApp(optionsStr) {
     if (!optionsStr) return '';
     const parts = optionsStr.split(', ').map(p => {
       const trimmed = p.trim();
-      return `*${trimmed}*`;
+      const lower = trimmed.toLowerCase();
+      
+      const isNegative = lower.startsWith('no ');
+      const isVariant = ['cod', 'haddock', 'plain', 'battered', 'chicken & mushroom', 'steak & kidney', 'beef & onion'].includes(lower);
+      const isSmallChips = lower === 'small chips';
+
+      if (isNegative || isVariant || isSmallChips) {
+        return `*${trimmed}*`;
+      }
+      return trimmed;
     });
     return ` (${parts.join(', ')})`;
   }
@@ -768,20 +777,11 @@
       }
     });
 
-    // Render Main Order Text with Categories and Double Line Spacing
-    const categories = {
-      "Burgers": ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips"],
-      "Fish": ["Fish & Chips", "Scampi & Chips", "Fishcake & Chips"],
-      "Sausage & Pies": ["Jumbo Sausage & Chips", "Pie & Chips", "Pea Fritter & Chips"],
-      "Sides & Extras": ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"]
-    };
-
     const groupedTotals = {};
     let mainGrandTotal = 0;
 
     mainOrders.forEach(order => {
       order.items.forEach(item => {
-        const optFormatted = formatOptionsForWhatsApp(item.options);
         const itemKey = `${item.name}|${item.options || ''}`;
         
         if (!groupedTotals[itemKey]) {
@@ -803,37 +803,39 @@
       let mainText = `Good evening! Please find the Bowls Club order below:\n\n*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
       
       const activeKeys = Object.keys(groupedTotals);
-      let catBlocks = [];
 
-      Object.keys(categories).forEach(catName => {
-        const catItems = activeKeys.filter(k => categories[catName].includes(groupedTotals[k].name));
-        if (catItems.length > 0) {
-          let blockLines = [];
-          catItems.forEach(k => {
-            const entry = groupedTotals[k];
-            const optFormatted = formatOptionsForWhatsApp(entry.options);
-            const lineTotal = entry.qty * entry.price;
-            blockLines.push(`${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`);
-          });
-          catBlocks.push(blockLines.join('\n'));
-        }
-      });
+      const burgerNames = ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips"];
+      const fishNames = ["Fish & Chips", "Scampi & Chips"];
+      const fishcakeNames = ["Fishcake & Chips"];
+      const pieNames = ["Pie & Chips"];
+      const fritterNames = ["Pea Fritter & Chips"];
+      const sausageNames = ["Jumbo Sausage & Chips"];
+      const extraNames = ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"];
 
-      // Catch any remaining items not explicitly in category lists
-      const categorizedKeys = Object.values(categories).flat();
-      const otherItems = activeKeys.filter(k => !categorizedKeys.includes(groupedTotals[k].name));
-      if (otherItems.length > 0) {
-        let blockLines = [];
-        otherItems.forEach(k => {
+      function buildCategoryBlock(namesArray) {
+        const matchedKeys = activeKeys.filter(k => namesArray.includes(groupedTotals[k].name));
+        if (matchedKeys.length === 0) return null;
+        
+        const lines = matchedKeys.map(k => {
           const entry = groupedTotals[k];
           const optFormatted = formatOptionsForWhatsApp(entry.options);
           const lineTotal = entry.qty * entry.price;
-          blockLines.push(`${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`);
+          return `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`;
         });
-        catBlocks.push(blockLines.join('\n'));
+        return lines.join('\n\n');
       }
 
-      mainText += catBlocks.join('\n\n') + `\n----------------------------------\n`;
+      const sections = [
+        buildCategoryBlock(burgerNames),
+        buildCategoryBlock(fishNames),
+        buildCategoryBlock(fishcakeNames),
+        buildCategoryBlock(pieNames),
+        buildCategoryBlock(fritterNames),
+        buildCategoryBlock(sausageNames),
+        buildCategoryBlock(extraNames)
+      ].filter(Boolean);
+
+      mainText += sections.join('\n\n') + `\n----------------------------------\n`;
       mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
       
       document.getElementById('chippy-summary-text').innerText = mainText;
@@ -876,13 +878,15 @@
       });
 
       let addonText = `Good evening! Please find an add-on to the Bowls Club order below:\n\n*ADD-ON TO BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-      Object.keys(addonTotals).forEach(k => {
+      const addonActiveKeys = Object.keys(addonTotals);
+      const addonLines = addonActiveKeys.map(k => {
         const entry = addonTotals[k];
         const optFormatted = formatOptionsForWhatsApp(entry.options);
         const lineTotal = entry.qty * entry.price;
-        addonText += `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}\n`;
+        return `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`;
       });
-      addonText += `----------------------------------\n`;
+
+      addonText += addonLines.join('\n\n') + `\n----------------------------------\n`;
       addonText += `*ADDITIONAL PAYMENT:* *£${addonGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
 
       document.getElementById('addon-summary-text').innerText = addonText;
