@@ -74,15 +74,19 @@
     .item-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .item-controls select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; flex: 1; }
     
-    .toggles-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+    .toggles-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e2e8f0; align-items: center; }
     .toggle-pill { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; user-select: none; }
     .toggle-pill.active { background: #dcfce7; color: #15803d; border-color: #86efac; }
     .toggle-pill.inactive { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
 
-    /* Small Chips Pill Toggle */
-    .chips-toggle-group { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; font-size: 0.85rem; font-weight: 600; user-select: none; }
-    .chips-toggle-btn { padding: 6px 10px; border: none; background: #f1f5f9; color: #475569; cursor: pointer; }
+    /* Equal-Width Small Chips Pill Toggle with Label */
+    .chips-toggle-wrapper { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #334155; }
+    .chips-toggle-group { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; width: 140px; }
+    .chips-toggle-btn { flex: 1; padding: 6px 0; border: none; background: #f1f5f9; color: #475569; cursor: pointer; text-align: center; font-weight: 600; font-size: 0.85rem; }
     .chips-toggle-btn.active { background: var(--primary); color: white; }
+
+    /* Burger Modifiers Row Split */
+    .mods-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e1; width: 100%; }
 
     .qty-controls { display: flex; align-items: center; gap: 8px; }
     .qty-btn { width: 34px; height: 34px; border: none; background: #ddd; font-weight: bold; font-size: 1.2rem; border-radius: 6px; cursor: pointer; }
@@ -124,7 +128,8 @@
     .badge-status { background: #e2e8f0; color: #334155; }
     .badge-locked { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 
-    .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+    /* Clean Word-Wrapped Summary Box */
+    .summary-box { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: normal; overflow-wrap: break-word; margin-top: 8px; margin-bottom: 10px; font-size: 0.9rem; }
     
     /* Live Order Summary Box for Customer View */
     .customer-summary-box {
@@ -349,7 +354,7 @@
     const row = { qty: 0 };
     if (item.variants) row.variant = item.variants[0];
     if (item.sv) { row.salt = true; row.vinegar = true; }
-    if (item.chipsToggle) row.smallChips = false; // false = Regular, true = Small
+    if (item.chipsToggle) row.smallChips = false;
     
     if (item.burgerMods) {
       row.mods = { cheese: true, lettuce: true, tomato: true, onion: true, mayo: true, ketchup: true };
@@ -392,9 +397,11 @@
           ? `<button class="remove-row-btn" onclick="window.removeVariantRow('${item.id}', ${idx})">✕</button>` 
           : '';
 
-        let togglesHtml = '';
+        let togglesTopHtml = '';
+        let togglesBottomHtml = '';
+
         if (item.sv) {
-          togglesHtml += `
+          togglesTopHtml += `
             <div class="toggle-pill ${row.salt ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'salt', ${!row.salt})">
               ${row.salt ? '✅ Salt' : '❌ No Salt'}
             </div>
@@ -405,10 +412,13 @@
         }
 
         if (item.chipsToggle) {
-          togglesHtml += `
-            <div class="chips-toggle-group">
-              <button type="button" class="chips-toggle-btn ${!row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, false)">Regular</button>
-              <button type="button" class="chips-toggle-btn ${row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, true)">Small</button>
+          togglesTopHtml += `
+            <div class="chips-toggle-wrapper">
+              <span>Chips:</span>
+              <div class="chips-toggle-group">
+                <button type="button" class="chips-toggle-btn ${!row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, false)">Regular</button>
+                <button type="button" class="chips-toggle-btn ${row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, true)">Small</button>
+              </div>
             </div>
           `;
         }
@@ -418,12 +428,20 @@
         if (modsList && row.mods) {
           modsList.forEach(m => {
             const isVal = row.mods[m.id];
-            togglesHtml += `
+            togglesBottomHtml += `
               <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', ${!isVal})">
                 ${isVal ? '✅ ' + m.posLabel : '❌ ' + m.negLabel}
               </div>
             `;
           });
+        }
+
+        let combinedToggles = '';
+        if (togglesTopHtml) {
+          combinedToggles += `<div class="toggles-box">${togglesTopHtml}</div>`;
+        }
+        if (togglesBottomHtml) {
+          combinedToggles += `<div class="mods-row">${togglesBottomHtml}</div>`;
         }
 
         rowsHtml += `
@@ -437,7 +455,7 @@
               </div>
               ${removeBtn}
             </div>
-            ${togglesHtml ? `<div class="toggles-box">${togglesHtml}</div>` : ''}
+            ${combinedToggles}
           </div>
         `;
       });
@@ -812,7 +830,7 @@
       const sausageNames = ["Jumbo Sausage & Chips"];
       const extraNames = ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"];
 
-      function buildCategoryBlock(namesArray) {
+      function buildCategoryBlock(namesArray, useDoubleSpacing = false) {
         const matchedKeys = activeKeys.filter(k => namesArray.includes(groupedTotals[k].name));
         if (matchedKeys.length === 0) return null;
         
@@ -822,17 +840,18 @@
           const lineTotal = entry.qty * entry.price;
           return `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`;
         });
-        return lines.join('\n\n');
+        // Burgers use double spacing (\n\n), others use single spacing (\n)
+        return lines.join(useDoubleSpacing ? '\n\n' : '\n');
       }
 
       const sections = [
-        buildCategoryBlock(burgerNames),
-        buildCategoryBlock(fishNames),
-        buildCategoryBlock(fishcakeNames),
-        buildCategoryBlock(pieNames),
-        buildCategoryBlock(fritterNames),
-        buildCategoryBlock(sausageNames),
-        buildCategoryBlock(extraNames)
+        buildCategoryBlock(burgerNames, true),   // Burgers get double spacing between builds
+        buildCategoryBlock(fishNames, false),     // Fish items stay together
+        buildCategoryBlock(fishcakeNames, false),
+        buildCategoryBlock(pieNames, false),
+        buildCategoryBlock(fritterNames, false),
+        buildCategoryBlock(sausageNames, false),  // Sausages stay together
+        buildCategoryBlock(extraNames, false)     // Extras stay together
       ].filter(Boolean);
 
       mainText += sections.join('\n\n') + `\n----------------------------------\n`;
@@ -886,7 +905,7 @@
         return `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`;
       });
 
-      addonText += addonLines.join('\n\n') + `\n----------------------------------\n`;
+      addonText += addonLines.join('\n') + `\n----------------------------------\n`;
       addonText += `*ADDITIONAL PAYMENT:* *£${addonGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
 
       document.getElementById('addon-summary-text').innerText = addonText;
