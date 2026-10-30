@@ -795,40 +795,36 @@
       }
     });
 
-    const groupedTotals = {};
-    let mainGrandTotal = 0;
+    const burgerNames = ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips"];
+    const fishNames = ["Fish & Chips", "Scampi & Chips"];
+    const fishcakeNames = ["Fishcake & Chips"];
+    const pieNames = ["Pie & Chips"];
+    const fritterNames = ["Pea Fritter & Chips"];
+    const sausageNames = ["Jumbo Sausage & Chips"];
+    const extraNames = ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"];
 
-    mainOrders.forEach(order => {
-      order.items.forEach(item => {
-        const itemKey = `${item.name}|${item.options || ''}`;
-        
-        if (!groupedTotals[itemKey]) {
-          groupedTotals[itemKey] = {
-            name: item.name,
-            options: item.options,
-            qty: 0,
-            price: item.price
-          };
-        }
-        groupedTotals[itemKey].qty += item.qty;
-        mainGrandTotal += item.qty * item.price;
+    function buildGroupedText(ordersList) {
+      const groupedTotals = {};
+      let grandTotal = 0;
+
+      ordersList.forEach(order => {
+        order.items.forEach(item => {
+          const itemKey = `${item.name}|${item.options || ''}`;
+          if (!groupedTotals[itemKey]) {
+            groupedTotals[itemKey] = {
+              name: item.name,
+              options: item.options,
+              qty: 0,
+              price: item.price
+            };
+          }
+          groupedTotals[itemKey].qty += item.qty;
+          grandTotal += item.qty * item.price;
+        });
       });
-    });
 
-    if (Object.keys(groupedTotals).length === 0) {
-      document.getElementById('chippy-summary-text').innerText = "No paid orders yet.";
-    } else {
-      let mainText = `Good evening! Please find the Bowls Club order below:\n\n*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-      
       const activeKeys = Object.keys(groupedTotals);
-
-      const burgerNames = ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips"];
-      const fishNames = ["Fish & Chips", "Scampi & Chips"];
-      const fishcakeNames = ["Fishcake & Chips"];
-      const pieNames = ["Pie & Chips"];
-      const fritterNames = ["Pea Fritter & Chips"];
-      const sausageNames = ["Jumbo Sausage & Chips"];
-      const extraNames = ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"];
+      if (activeKeys.length === 0) return null;
 
       function buildCategoryBlock(namesArray, useDoubleSpacing = false) {
         const matchedKeys = activeKeys.filter(k => namesArray.includes(groupedTotals[k].name));
@@ -840,23 +836,33 @@
           const lineTotal = entry.qty * entry.price;
           return `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`;
         });
-        // Burgers use double spacing (\n\n), others use single spacing (\n)
         return lines.join(useDoubleSpacing ? '\n\n' : '\n');
       }
 
       const sections = [
-        buildCategoryBlock(burgerNames, true),   // Burgers get double spacing between builds
-        buildCategoryBlock(fishNames, false),     // Fish items stay together
+        buildCategoryBlock(burgerNames, true),   // Burgers get double spacing
+        buildCategoryBlock(fishNames, false),     // Fish items single spaced
         buildCategoryBlock(fishcakeNames, false),
         buildCategoryBlock(pieNames, false),
         buildCategoryBlock(fritterNames, false),
-        buildCategoryBlock(sausageNames, false),  // Sausages stay together
-        buildCategoryBlock(extraNames, false)     // Extras stay together
+        buildCategoryBlock(sausageNames, false),  // Sausages single spaced
+        buildCategoryBlock(extraNames, false)     // Extras single spaced
       ].filter(Boolean);
 
-      mainText += sections.join('\n\n') + `\n----------------------------------\n`;
-      mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
-      
+      return {
+        textBody: sections.join('\n\n'),
+        grandTotal: grandTotal
+      };
+    }
+
+    // Render Main Order Text
+    const mainResult = buildGroupedText(mainOrders);
+    if (!mainResult) {
+      document.getElementById('chippy-summary-text').innerText = "No paid orders yet.";
+    } else {
+      let mainText = `Good evening! Please find the Bowls Club order below:\n\n*BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
+      mainText += mainResult.textBody + `\n----------------------------------\n`;
+      mainText += `*GRAND TOTAL TO PAY CHIPPY:* *£${mainResult.grandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
       document.getElementById('chippy-summary-text').innerText = mainText;
     }
 
@@ -878,35 +884,14 @@
       unlockBtn.classList.add('hidden');
     }
 
-    // Render Late Add-ons if any paid late orders exist
+    // Render Late Add-ons with exact matching line-spacing & category grouping
     if (sessionMeta.mainLocked && addonOrders.length > 0) {
       document.getElementById('addon-summary-container').classList.remove('hidden');
 
-      const addonTotals = {};
-      let addonGrandTotal = 0;
-
-      addonOrders.forEach(order => {
-        order.items.forEach(item => {
-          const itemKey = `${item.name}|${item.options || ''}`;
-          if (!addonTotals[itemKey]) {
-            addonTotals[itemKey] = { name: item.name, options: item.options, qty: 0, price: item.price };
-          }
-          addonTotals[itemKey].qty += item.qty;
-          addonGrandTotal += item.qty * item.price;
-        });
-      });
-
+      const addonResult = buildGroupedText(addonOrders);
       let addonText = `Good evening! Please find an add-on to the Bowls Club order below:\n\n*ADD-ON TO BOWLS CLUB CHIPPY ORDER*\n----------------------------------\n`;
-      const addonActiveKeys = Object.keys(addonTotals);
-      const addonLines = addonActiveKeys.map(k => {
-        const entry = addonTotals[k];
-        const optFormatted = formatOptionsForWhatsApp(entry.options);
-        const lineTotal = entry.qty * entry.price;
-        return `${entry.qty}x ${entry.name}${optFormatted} (£${entry.price.toFixed(2)}) = £${lineTotal.toFixed(2)}`;
-      });
-
-      addonText += addonLines.join('\n') + `\n----------------------------------\n`;
-      addonText += `*ADDITIONAL PAYMENT:* *£${addonGrandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
+      addonText += addonResult.textBody + `\n----------------------------------\n`;
+      addonText += `*ADDITIONAL PAYMENT:* *£${addonResult.grandTotal.toFixed(2)}*\n\nThank you! See you shortly.`;
 
       document.getElementById('addon-summary-text').innerText = addonText;
     } else {
@@ -932,18 +917,21 @@
     }
 
     const text = document.getElementById('chippy-summary-text').innerText;
-    
+
+    // 1. Copy text to clipboard as a backup
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+
+    // 2. Open WhatsApp IMMEDIATELY (Synchronous user gesture -> Never blocked on mobile)
+    const phoneParam = CHIPPY_PHONE ? `phone=${CHIPPY_PHONE}&` : '';
+    window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`, '_blank');
+
+    // 3. Update Firebase in the background (Non-blocking)
     set(metaRef, {
       mainLocked: true,
       lockTimestamp: Date.now()
-    }).then(() => {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).catch(() => {});
-      }
-      alert('Main Chippy summary locked!\n\nOpening WhatsApp...');
-      const phoneParam = CHIPPY_PHONE ? `phone=${CHIPPY_PHONE}&` : '';
-      window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`, '_blank');
-    });
+    }).catch(err => console.error("Background sync error:", err));
   };
 
   window.unlockMainOrder = function() {
