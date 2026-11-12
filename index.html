@@ -42,6 +42,19 @@
     label { display: block; font-weight: bold; margin-bottom: 6px; }
     input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 8px; font-size: 1.1rem; }
     
+    /* Late Order Warning Banner */
+    .late-warning-banner {
+      background: #fff7ed;
+      border: 2px solid #f97316;
+      color: #9a3412;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
     /* Clean, High-Visibility Name Entry Styling */
     .name-input-box {
       background: #f8fafc;
@@ -198,6 +211,10 @@
 
   <!-- ORDER FORM VIEW -->
   <div id="view-order" class="view-card">
+    <div id="order-warning-banner" class="late-warning-banner hidden">
+      ⚠️ MAIN ORDER LOCKED IN: New submissions will be sent as late add-ons and may not be fulfilled!
+    </div>
+
     <div class="input-group">
       <label for="customerName" style="color:#0f172a; font-size:1.05rem;">👤 Your Name(s):</label>
       <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave & Sarah" oninput="this.classList.remove('input-error')">
@@ -336,13 +353,22 @@
     { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true },
     { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true },
     { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true },
+    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true },
     { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true },
     { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true },
     { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true },
     { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true, chipsToggle: true },
+    { id: 'extra_sausage_plain', name: 'Jumbo Sausage (Plain)', price: 2.00, sv: false },
+    { id: 'extra_sausage_battered', name: 'Jumbo Sausage (Battered)', price: 2.00, sv: false },
+    { id: 'extra_fishcake', name: 'Fishcake', price: 2.00, sv: false },
+    { id: 'extra_pea_fritter', name: 'Pea Fritter', price: 2.00, sv: false },
+    { id: 'extra_pineapple_fritter', name: 'Pineapple Fritter', price: 2.00, sv: false },
     { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false },
     { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false },
-    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false }
+    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false },
+    { id: 'extra_roll', name: 'Buttered Roll', price: 0.50, sv: false },
+    { id: 'extra_pickled_egg', name: 'Pickled Egg', price: 0.50, sv: false },
+    { id: 'extra_pickled_onion', name: 'Pickled Onion', price: 0.50, sv: false }
   ];
 
   let formState = {};
@@ -744,6 +770,15 @@
   // Realtime Listeners
   onValue(metaRef, (snapshot) => {
     sessionMeta = snapshot.val() || { mainLocked: false, lockTimestamp: null };
+    
+    // Toggle Live Order Warning Banner on Customer View
+    const warningBanner = document.getElementById('order-warning-banner');
+    if (sessionMeta.mainLocked) {
+      warningBanner.classList.remove('hidden');
+    } else {
+      warningBanner.classList.add('hidden');
+    }
+
     renderSummaries();
   });
 
@@ -795,13 +830,28 @@
       }
     });
 
-    const burgerNames = ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips"];
-    const fishNames = ["Fish & Chips", "Scampi & Chips"];
+    const burgerNames = ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips", "Veggie Burger & Chips"];
+    const fishNames = ["Fish & Chips"];
+    const scampiNames = ["Scampi & Chips"];
     const fishcakeNames = ["Fishcake & Chips"];
     const pieNames = ["Pie & Chips"];
     const fritterNames = ["Pea Fritter & Chips"];
     const sausageNames = ["Jumbo Sausage & Chips"];
-    const extraNames = ["Chips", "Cheesy Chips", "Extra: Curry Sauce", "Extra: Mushy Peas", "Extra: Baked Beans"];
+    const chipsNames = ["Chips"];
+    const cheesyChipsNames = ["Cheesy Chips"];
+    const extraNames = [
+      "Jumbo Sausage (Plain)", 
+      "Jumbo Sausage (Battered)", 
+      "Fishcake", 
+      "Pea Fritter", 
+      "Pineapple Fritter", 
+      "Extra: Curry Sauce", 
+      "Extra: Mushy Peas", 
+      "Extra: Baked Beans", 
+      "Buttered Roll", 
+      "Pickled Egg", 
+      "Pickled Onion"
+    ];
 
     function buildGroupedText(ordersList) {
       const groupedTotals = {};
@@ -840,13 +890,16 @@
       }
 
       const sections = [
-        buildCategoryBlock(burgerNames, true),   // Burgers get double spacing
-        buildCategoryBlock(fishNames, false),     // Fish items single spaced
+        buildCategoryBlock(burgerNames, true),       // Burgers & Veggie Burgers get double spacing
+        buildCategoryBlock(fishNames, false),         // Fish items single spaced
+        buildCategoryBlock(scampiNames, false),       // Scampi single spaced
         buildCategoryBlock(fishcakeNames, false),
         buildCategoryBlock(pieNames, false),
         buildCategoryBlock(fritterNames, false),
-        buildCategoryBlock(sausageNames, false),  // Sausages single spaced
-        buildCategoryBlock(extraNames, false)     // Extras single spaced
+        buildCategoryBlock(sausageNames, false),
+        buildCategoryBlock(chipsNames, false),
+        buildCategoryBlock(cheesyChipsNames, false),
+        buildCategoryBlock(extraNames, false)         // All extras & side items single spaced
       ].filter(Boolean);
 
       return {
@@ -973,7 +1026,8 @@
       nightTotal += order.total;
 
       order.items.forEach(item => {
-        if (item.name.toLowerCase().includes('extra') || item.name.toLowerCase().includes('sauce') || item.name.toLowerCase().includes('peas') || item.name.toLowerCase().includes('beans')) {
+        const lowerName = item.name.toLowerCase();
+        if (lowerName.includes('extra') || lowerName.includes('sauce') || lowerName.includes('peas') || lowerName.includes('beans') || lowerName.includes('roll') || lowerName.includes('egg') || lowerName.includes('onion') || lowerName.includes('fritter') || lowerName.includes('fishcake') || (lowerName.includes('sausage') && !lowerName.includes('& chips'))) {
           totalExtrasCount += item.qty;
         } else {
           totalMealsCount += item.qty;
@@ -1168,21 +1222,40 @@
     y += 8;
     
     doc.setFontSize(10);
+    const maxLineWidth = 180;
+
     Object.keys(currentOrders).forEach(key => {
       const order = currentOrders[key];
-      const itemsText = order.items.map(i => `${i.qty}x ${i.name}${i.options ? ' ('+i.options+')' : ''}`).join(', ');
+      
+      // Print Customer Header & Total
+      doc.setFont("helvetica", "bold");
       doc.text(`${order.customerName} - £${order.total.toFixed(2)} [PAID]`, 14, y);
       y += 5;
-      doc.text(`   Items: ${itemsText}`, 14, y);
-      y += 7;
-      if (y > 270) { doc.addPage(); y = 20; }
+
+      // Print each item on its own dropped line, with word wrapping if options are long
+      doc.setFont("helvetica", "normal");
+      order.items.forEach(item => {
+        const itemString = `• ${item.qty}x ${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
+        const wrappedItemLines = doc.splitTextToSize(itemString, maxLineWidth);
+        
+        doc.text(wrappedItemLines, 18, y);
+        y += (wrappedItemLines.length * 5);
+      });
+
+      y += 4;
+
+      if (y > 270) { 
+        doc.addPage(); 
+        y = 20; 
+      }
     });
 
     let totalEarned = 0;
     Object.keys(currentOrders).forEach(k => totalEarned += currentOrders[k].total);
     
-    y += 10;
+    y += 6;
     doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
     doc.text(`Total Revenue Collected: £${totalEarned.toFixed(2)}`, 14, y);
 
     doc.save(`SOBG Chippy Order ${dateStr}.pdf`);
