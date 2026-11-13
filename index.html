@@ -108,6 +108,26 @@
     .add-row-btn { font-size: 0.85rem; background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; color: var(--primary); cursor: pointer; margin-top: 6px; display: inline-block; }
     .remove-row-btn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
 
+    /* Tinted Extras Container */
+    .extras-section-container {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    .extras-section-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-top: 0;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; margin-top: 8px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-secondary { background: var(--secondary); color: white; }
@@ -212,7 +232,7 @@
   <!-- ORDER FORM VIEW -->
   <div id="view-order" class="view-card">
     <div id="order-warning-banner" class="late-warning-banner hidden">
-      ⚠️ MAIN ORDER LOCKED IN: New submissions will be sent as late add-ons and may not be fulfilled!
+      The main order has already been sent to the chippy. You can still place an order below; we will try to include it as a late add-on, but we can't promise it will be fulfilled.
     </div>
 
     <div class="input-group">
@@ -222,6 +242,12 @@
 
     <h3>Menu Items</h3>
     <div id="menu-container"></div>
+
+    <!-- Tinted Extras Container -->
+    <div class="extras-section-container">
+      <div class="extras-section-title">🍟 Standalone Extras & Sides</div>
+      <div id="extras-menu-container"></div>
+    </div>
 
     <!-- Live Order Summary Preview -->
     <div class="customer-summary-box">
@@ -347,28 +373,28 @@
   ];
 
   const menuConfig = [
-    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true, chipsToggle: true },
-    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true, chipsToggle: true },
-    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true, chipsToggle: true },
-    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true },
-    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true },
-    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true },
-    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true },
-    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true },
-    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true },
-    { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true },
-    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true, chipsToggle: true },
-    { id: 'extra_sausage_plain', name: 'Jumbo Sausage (Plain)', price: 2.00, sv: false },
-    { id: 'extra_sausage_battered', name: 'Jumbo Sausage (Battered)', price: 2.00, sv: false },
-    { id: 'extra_fishcake', name: 'Fishcake', price: 2.00, sv: false },
-    { id: 'extra_pea_fritter', name: 'Pea Fritter', price: 2.00, sv: false },
-    { id: 'extra_pineapple_fritter', name: 'Pineapple Fritter', price: 2.00, sv: false },
-    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false },
-    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false },
-    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false },
-    { id: 'extra_roll', name: 'Buttered Roll', price: 0.50, sv: false },
-    { id: 'extra_pickled_egg', name: 'Pickled Egg', price: 0.50, sv: false },
-    { id: 'extra_pickled_onion', name: 'Pickled Onion', price: 0.50, sv: false }
+    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true, chipsToggle: true, isExtra: false },
+    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true, chipsToggle: true, isExtra: false },
+    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true, chipsToggle: true, isExtra: false },
+    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'extra_sausage_plain', name: 'Extra: Jumbo Sausage (Plain)', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_sausage_battered', name: 'Extra: Jumbo Sausage (Battered)', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_fishcake', name: 'Extra: Fishcake', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_pea_fritter', name: 'Extra: Pea Fritter', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_pineapple_fritter', name: 'Extra: Pineapple Fritter', price: 2.00, sv: false, isExtra: true },
+    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false, isExtra: true },
+    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false, isExtra: true },
+    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_roll', name: 'Extra: Buttered Roll', price: 0.50, sv: false, isExtra: true },
+    { id: 'extra_pickled_egg', name: 'Extra: Pickled Egg', price: 0.50, sv: false, isExtra: true },
+    { id: 'extra_pickled_onion', name: 'Extra: Pickled Onion', price: 0.50, sv: false, isExtra: true }
   ];
 
   let formState = {};
@@ -401,8 +427,10 @@
   }
 
   function renderMenu() {
-    const container = document.getElementById('menu-container');
-    container.innerHTML = '';
+    const mainContainer = document.getElementById('menu-container');
+    const extrasContainer = document.getElementById('extras-menu-container');
+    mainContainer.innerHTML = '';
+    extrasContainer.innerHTML = '';
 
     menuConfig.forEach(item => {
       const itemEl = document.createElement('div');
@@ -498,7 +526,12 @@
         ${rowsHtml}
         ${addRowBtn}
       `;
-      container.appendChild(itemEl);
+
+      if (item.isExtra) {
+        extrasContainer.appendChild(itemEl);
+      } else {
+        mainContainer.appendChild(itemEl);
+      }
     });
   }
 
@@ -830,7 +863,10 @@
       }
     });
 
-    const burgerNames = ["¼lb Cheese Burger & Chips", "Chicken Burger & Chips", "Veggie Burger & Chips"];
+    // True 1-to-1 category arrays for isolation & precise spacing
+    const cheeseBurgerNames = ["¼lb Cheese Burger & Chips"];
+    const chickenBurgerNames = ["Chicken Burger & Chips"];
+    const veggieBurgerNames = ["Veggie Burger & Chips"];
     const fishNames = ["Fish & Chips"];
     const scampiNames = ["Scampi & Chips"];
     const fishcakeNames = ["Fishcake & Chips"];
@@ -840,17 +876,17 @@
     const chipsNames = ["Chips"];
     const cheesyChipsNames = ["Cheesy Chips"];
     const extraNames = [
-      "Jumbo Sausage (Plain)", 
-      "Jumbo Sausage (Battered)", 
-      "Fishcake", 
-      "Pea Fritter", 
-      "Pineapple Fritter", 
+      "Extra: Jumbo Sausage (Plain)", 
+      "Extra: Jumbo Sausage (Battered)", 
+      "Extra: Fishcake", 
+      "Extra: Pea Fritter", 
+      "Extra: Pineapple Fritter", 
       "Extra: Curry Sauce", 
       "Extra: Mushy Peas", 
       "Extra: Baked Beans", 
-      "Buttered Roll", 
-      "Pickled Egg", 
-      "Pickled Onion"
+      "Extra: Buttered Roll", 
+      "Extra: Pickled Egg", 
+      "Extra: Pickled Onion"
     ];
 
     function buildGroupedText(ordersList) {
@@ -890,16 +926,18 @@
       }
 
       const sections = [
-        buildCategoryBlock(burgerNames, true),       // Burgers & Veggie Burgers get double spacing
-        buildCategoryBlock(fishNames, false),         // Fish items single spaced
-        buildCategoryBlock(scampiNames, false),       // Scampi single spaced
+        buildCategoryBlock(cheeseBurgerNames, true),
+        buildCategoryBlock(chickenBurgerNames, true),
+        buildCategoryBlock(veggieBurgerNames, true),
+        buildCategoryBlock(fishNames, false),
+        buildCategoryBlock(scampiNames, false),
         buildCategoryBlock(fishcakeNames, false),
         buildCategoryBlock(pieNames, false),
         buildCategoryBlock(fritterNames, false),
         buildCategoryBlock(sausageNames, false),
         buildCategoryBlock(chipsNames, false),
         buildCategoryBlock(cheesyChipsNames, false),
-        buildCategoryBlock(extraNames, false)         // All extras & side items single spaced
+        buildCategoryBlock(extraNames, false)
       ].filter(Boolean);
 
       return {
@@ -937,7 +975,7 @@
       unlockBtn.classList.add('hidden');
     }
 
-    // Render Late Add-ons with exact matching line-spacing & category grouping
+    // Render Late Add-ons
     if (sessionMeta.mainLocked && addonOrders.length > 0) {
       document.getElementById('addon-summary-container').classList.remove('hidden');
 
@@ -971,16 +1009,13 @@
 
     const text = document.getElementById('chippy-summary-text').innerText;
 
-    // 1. Copy text to clipboard as a backup
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
 
-    // 2. Open WhatsApp IMMEDIATELY (Synchronous user gesture -> Never blocked on mobile)
     const phoneParam = CHIPPY_PHONE ? `phone=${CHIPPY_PHONE}&` : '';
     window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`, '_blank');
 
-    // 3. Update Firebase in the background (Non-blocking)
     set(metaRef, {
       mainLocked: true,
       lockTimestamp: Date.now()
@@ -1227,12 +1262,10 @@
     Object.keys(currentOrders).forEach(key => {
       const order = currentOrders[key];
       
-      // Print Customer Header & Total
       doc.setFont("helvetica", "bold");
       doc.text(`${order.customerName} - £${order.total.toFixed(2)} [PAID]`, 14, y);
       y += 5;
 
-      // Print each item on its own dropped line, with word wrapping if options are long
       doc.setFont("helvetica", "normal");
       order.items.forEach(item => {
         const itemString = `• ${item.qty}x ${item.name}${item.options ? ' (' + item.options + ')' : ''}`;
