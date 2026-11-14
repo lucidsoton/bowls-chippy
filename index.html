@@ -237,7 +237,7 @@
 
     <div class="input-group">
       <label for="customerName" style="color:#0f172a; font-size:1.05rem;">👤 Your Name(s):</label>
-      <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave & Sarah" oninput="this.classList.remove('input-error')">
+      <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave S or Sarah Jones" oninput="this.classList.remove('input-error')">
     </div>
 
     <h3>Menu Items</h3>
@@ -245,7 +245,7 @@
 
     <!-- Tinted Extras Container -->
     <div class="extras-section-container">
-      <div class="extras-section-title">🍟 Standalone Extras & Sides</div>
+      <div class="extras-section-title">Extras & Sides</div>
       <div id="extras-menu-container"></div>
     </div>
 
@@ -372,6 +372,24 @@
     { id: 'ketchup', posLabel: 'Ketchup', negLabel: 'No Ketchup' }
   ];
 
+  // Veggie Burger Modifier Fix: Separate list excluding cheese
+  const veggieModifiersList = [
+    { id: 'lettuce', posLabel: 'Lettuce', negLabel: 'No Lettuce' },
+    { id: 'tomato', posLabel: 'Tomato', negLabel: 'No Tomato' },
+    { id: 'onion', posLabel: 'Onion', negLabel: 'No Onion' },
+    { id: 'mayo', posLabel: 'Mayo', negLabel: 'No Mayo' },
+    { id: 'ketchup', posLabel: 'Ketchup', negLabel: 'No Ketchup' }
+  ];
+
+  const chippySauces = ['Burger sauce', 'Garlic mayo', 'Ketchup', 'Mayo', 'Sweet chilli'];
+  const kebabSalads = [
+    { id: 'jalapeno', posLabel: 'Jalapeno', negLabel: 'No Jalapeno' },
+    { id: 'lettuce', posLabel: 'Lettuce', negLabel: 'No Lettuce' },
+    { id: 'onion', posLabel: 'Onion', negLabel: 'No Onion' },
+    { id: 'tomato', posLabel: 'Tomato', negLabel: 'No Tomato' },
+    { id: 'cucumber', posLabel: 'Cucumber', negLabel: 'No Cucumber' }
+  ];
+
   const menuConfig = [
     { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true, chipsToggle: true, isExtra: false },
     { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true, chipsToggle: true, isExtra: false },
@@ -379,7 +397,13 @@
     { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true, isExtra: false },
     { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true, isExtra: false },
     { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true, isExtra: false },
-    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, veggieMods: true, sv: true, chipsToggle: true, isExtra: false },
+    
+    // New Kebab Additions
+    { id: 'shish_kebab', name: 'Shish Kebab in Pita', price: 7.00, kebabConfig: true, isExtra: false },
+    { id: 'doner_kebab_pita', name: 'Large Doner Kebab in Pita', price: 7.90, kebabConfig: true, isExtra: false },
+    { id: 'doner_chips', name: 'Doner Kebab on Chips', price: 7.90, kebabConfig: true, isExtra: false },
+
     { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true, isExtra: false },
     { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true, isExtra: false },
     { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true, isExtra: false },
@@ -414,6 +438,16 @@
 
     if (item.chickenMods) {
       row.mods = { lettuce: true, tomato: true, onion: true, mayo: true, ketchup: true };
+    }
+
+    if (item.veggieMods) {
+      row.mods = { lettuce: true, tomato: true, onion: true, mayo: true, ketchup: true };
+    }
+
+    if (item.kebabConfig) {
+      row.meat = 'Lamb';
+      row.sauce = chippySauces[0];
+      row.salads = { jalapeno: true, lettuce: true, onion: true, tomato: true, cucumber: true };
     }
 
     return row;
@@ -477,7 +511,7 @@
           `;
         }
 
-        const modsList = item.burgerMods ? burgerModifiersList : (item.chickenMods ? chickenModifiersList : null);
+        const modsList = item.burgerMods ? burgerModifiersList : (item.chickenMods ? chickenModifiersList : (item.veggieMods ? veggieModifiersList : null));
 
         if (modsList && row.mods) {
           modsList.forEach(m => {
@@ -488,6 +522,31 @@
               </div>
             `;
           });
+        }
+
+        if (item.kebabConfig) {
+          togglesTopHtml += `
+            <div style="width:100%; display:flex; gap:6px; margin-top:4px;">
+              <select onchange="window.updateKebabMeat('${item.id}', ${idx}, this.value)" style="flex:1; padding:6px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem;">
+                <option value="Lamb" ${row.meat === 'Lamb' ? 'selected' : ''}>Lamb</option>
+                <option value="Chicken" ${row.meat === 'Chicken' ? 'selected' : ''}>Chicken</option>
+              </select>
+              <select onchange="window.updateKebabSauce('${item.id}', ${idx}, this.value)" style="flex:1; padding:6px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem;">
+                ${chippySauces.map(s => `<option value="${s}" ${row.sauce === s ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+            </div>
+          `;
+
+          if (row.salads) {
+            kebabSalads.forEach(s => {
+              const isVal = row.salads[s.id];
+              togglesBottomHtml += `
+                <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateKebabSalad('${item.id}', ${idx}, '${s.id}', ${!isVal})">
+                  ${isVal ? '✅ ' + s.posLabel : '❌ ' + s.negLabel}
+                </div>
+              `;
+            });
+          }
         }
 
         let combinedToggles = '';
@@ -514,7 +573,7 @@
         `;
       });
 
-      const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods || item.chipsToggle)
+      const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods || item.veggieMods || item.kebabConfig || item.chipsToggle)
         ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another ${item.name} (Different Options)</button>` 
         : '';
 
@@ -561,6 +620,23 @@
   window.updateBurgerMod = function(itemId, rowIdx, modId, val) {
     if (!formState[itemId][rowIdx].mods) formState[itemId][rowIdx].mods = {};
     formState[itemId][rowIdx].mods[modId] = val;
+    renderMenu();
+    calculateTotal();
+  };
+
+  window.updateKebabMeat = function(itemId, rowIdx, val) {
+    formState[itemId][rowIdx].meat = val;
+    calculateTotal();
+  };
+
+  window.updateKebabSauce = function(itemId, rowIdx, val) {
+    formState[itemId][rowIdx].sauce = val;
+    calculateTotal();
+  };
+
+  window.updateKebabSalad = function(itemId, rowIdx, saladId, val) {
+    if (!formState[itemId][rowIdx].salads) formState[itemId][rowIdx].salads = {};
+    formState[itemId][rowIdx].salads[saladId] = val;
     renderMenu();
     calculateTotal();
   };
@@ -638,6 +714,17 @@
     const options = [];
     if (row.variant) options.push(row.variant);
 
+    if (itemConfig.kebabConfig) {
+      if (row.meat) options.push(row.meat);
+      if (row.sauce) options.push(row.sauce);
+      if (row.salads) {
+        kebabSalads.forEach(s => {
+          if (row.salads[s.id]) options.push(s.posLabel);
+          else options.push(s.negLabel);
+        });
+      }
+    }
+
     if (itemConfig.chipsToggle && row.smallChips) {
       options.push('Small Chips');
     }
@@ -648,7 +735,7 @@
       else if (!row.vinegar) options.push('No Vinegar');
     }
 
-    const modsList = itemConfig.burgerMods ? burgerModifiersList : (itemConfig.chickenMods ? chickenModifiersList : null);
+    const modsList = itemConfig.burgerMods ? burgerModifiersList : (itemConfig.chickenMods ? chickenModifiersList : (itemConfig.veggieMods ? veggieModifiersList : null));
 
     if (modsList && row.mods) {
       modsList.forEach(m => {
@@ -804,7 +891,6 @@
   onValue(metaRef, (snapshot) => {
     sessionMeta = snapshot.val() || { mainLocked: false, lockTimestamp: null };
     
-    // Toggle Live Order Warning Banner on Customer View
     const warningBanner = document.getElementById('order-warning-banner');
     if (sessionMeta.mainLocked) {
       warningBanner.classList.remove('hidden');
@@ -821,7 +907,7 @@
     renderSummaries();
   });
 
-  // Target ONLY negatives, dropdown variants, and small chips for WhatsApp bolding
+  // Target ONLY negatives, dropdown variants, meat choices, and small chips for WhatsApp bolding
   function formatOptionsForWhatsApp(optionsStr) {
     if (!optionsStr) return '';
     const parts = optionsStr.split(', ').map(p => {
@@ -829,7 +915,7 @@
       const lower = trimmed.toLowerCase();
       
       const isNegative = lower.startsWith('no ');
-      const isVariant = ['cod', 'haddock', 'plain', 'battered', 'chicken & mushroom', 'steak & kidney', 'beef & onion'].includes(lower);
+      const isVariant = ['cod', 'haddock', 'plain', 'battered', 'chicken & mushroom', 'steak & kidney', 'beef & onion', 'lamb', 'chicken'].includes(lower);
       const isSmallChips = lower === 'small chips';
 
       if (isNegative || isVariant || isSmallChips) {
@@ -863,10 +949,12 @@
       }
     });
 
-    // True 1-to-1 category arrays for isolation & precise spacing
     const cheeseBurgerNames = ["¼lb Cheese Burger & Chips"];
     const chickenBurgerNames = ["Chicken Burger & Chips"];
     const veggieBurgerNames = ["Veggie Burger & Chips"];
+    const shishKebabNames = ["Shish Kebab in Pita"];
+    const donerKebabNames = ["Large Doner Kebab in Pita"];
+    const donerChipsNames = ["Doner Kebab on Chips"];
     const fishNames = ["Fish & Chips"];
     const scampiNames = ["Scampi & Chips"];
     const fishcakeNames = ["Fishcake & Chips"];
@@ -916,6 +1004,13 @@
         const matchedKeys = activeKeys.filter(k => namesArray.includes(groupedTotals[k].name));
         if (matchedKeys.length === 0) return null;
         
+        // Variant-first sort order mapping to cluster variants together (e.g. Plain then Battered, Cod then Haddock, Lamb then Chicken)
+        matchedKeys.sort((a, b) => {
+          const optA = groupedTotals[a].options || '';
+          const optB = groupedTotals[b].options || '';
+          return optA.localeCompare(optB);
+        });
+
         const lines = matchedKeys.map(k => {
           const entry = groupedTotals[k];
           const optFormatted = formatOptionsForWhatsApp(entry.options);
@@ -929,6 +1024,9 @@
         buildCategoryBlock(cheeseBurgerNames, true),
         buildCategoryBlock(chickenBurgerNames, true),
         buildCategoryBlock(veggieBurgerNames, true),
+        buildCategoryBlock(shishKebabNames, true),
+        buildCategoryBlock(donerKebabNames, true),
+        buildCategoryBlock(donerChipsNames, true),
         buildCategoryBlock(fishNames, false),
         buildCategoryBlock(scampiNames, false),
         buildCategoryBlock(fishcakeNames, false),
@@ -946,7 +1044,6 @@
       };
     }
 
-    // Render Main Order Text
     const mainResult = buildGroupedText(mainOrders);
     if (!mainResult) {
       document.getElementById('chippy-summary-text').innerText = "No paid orders yet.";
@@ -957,7 +1054,6 @@
       document.getElementById('chippy-summary-text').innerText = mainText;
     }
 
-    // UI State Updating for Main Order
     const badge = document.getElementById('lock-status-badge');
     const lockBtn = document.getElementById('btn-lock-send');
     const unlockBtn = document.getElementById('btn-unlock-order');
@@ -975,7 +1071,6 @@
       unlockBtn.classList.add('hidden');
     }
 
-    // Render Late Add-ons
     if (sessionMeta.mainLocked && addonOrders.length > 0) {
       document.getElementById('addon-summary-container').classList.remove('hidden');
 
@@ -1191,6 +1286,17 @@
               const matchedVar = cfg.variants.find(v => opts.includes(v));
               if (matchedVar) newRow.variant = matchedVar;
             }
+            if (cfg.kebabConfig) {
+              const matchedMeat = ['Lamb', 'Chicken'].find(m => opts.includes(m));
+              if (matchedMeat) newRow.meat = matchedMeat;
+              const matchedSauce = chippySauces.find(s => opts.includes(s));
+              if (matchedSauce) newRow.sauce = matchedSauce;
+              if (newRow.salads) {
+                kebabSalads.forEach(s => {
+                  newRow.salads[s.id] = opts.includes(s.posLabel);
+                });
+              }
+            }
             if (cfg.chipsToggle) {
               newRow.smallChips = opts.includes('Small Chips');
             }
@@ -1199,8 +1305,8 @@
               else if (opts.includes('No Salt')) { newRow.salt = false; newRow.vinegar = true; }
               else if (opts.includes('No Vinegar')) { newRow.salt = true; newRow.vinegar = false; }
             }
-            if ((cfg.burgerMods || cfg.chickenMods) && newRow.mods) {
-              const mList = cfg.burgerMods ? burgerModifiersList : chickenModifiersList;
+            if ((cfg.burgerMods || cfg.chickenMods || cfg.veggieMods) && newRow.mods) {
+              const mList = cfg.burgerMods ? burgerModifiersList : (cfg.chickenMods ? chickenModifiersList : veggieModifiersList);
               mList.forEach(m => {
                 newRow.mods[m.id] = opts.includes(m.posLabel);
               });
