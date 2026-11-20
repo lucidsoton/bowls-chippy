@@ -24,7 +24,6 @@
       --bg: #f4f6f8;
       --card-bg: #ffffff;
       --text: #222222;
-      --border: #e2e8f0;
     }
     * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); margin: 0; padding: 12px; font-size: 16px; }
@@ -81,12 +80,6 @@
       40%, 80% { transform: translateX(5px); }
     }
 
-    /* Collapsible Menu Sections */
-    details.menu-section { background: #fff; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
-    details.menu-section summary { padding: 14px 16px; font-weight: 700; background: #f8fafc; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; font-size: 1.05rem; color: var(--primary); }
-    details.menu-section summary:hover { background: #f1f5f9; }
-    .menu-section-content { padding: 12px 16px; border-top: 1px solid var(--border); }
-
     .menu-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
     .item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
     .item-price { color: var(--primary); }
@@ -115,6 +108,26 @@
     .add-row-btn { font-size: 0.85rem; background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; color: var(--primary); cursor: pointer; margin-top: 6px; display: inline-block; }
     .remove-row-btn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
 
+    /* Tinted Extras Container */
+    .extras-section-container {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    .extras-section-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-top: 0;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; text-align: center; margin-top: 8px; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-secondary { background: var(--secondary); color: white; }
@@ -133,16 +146,6 @@
     .stat-box-secondary { flex: 1; background: #e2e8f0; padding: 5px 4px; border-radius: 6px; border: 1px solid #cbd5e1; }
     .stat-box-secondary span { display: block; font-size: 0.65rem; color: #334155; font-weight: bold; text-transform: uppercase; }
     .stat-box-secondary strong { font-size: 0.95rem; color: var(--primary); }
-
-    /* Persistent Club Kitty Card (Tap-to-Reveal) */
-    .kitty-card-wrapper { max-width: 50%; margin: 0 auto 16px auto; }
-    .kitty-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.2s ease; }
-    .kitty-box span { display: block; font-size: 0.75rem; color: #065f46; text-transform: uppercase; font-weight: 700; }
-    .kitty-box strong { font-size: 1.25rem; color: #047857; }
-    
-    .kitty-controls { display: flex; align-items: center; justify-content: center; gap: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 8px; }
-    .kitty-controls .btn-stack { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
-    .kitty-controls button { padding: 6px 10px; font-size: 0.8rem; border-radius: 6px; }
 
     .order-card { border-left: 5px solid #cbd5e1; padding: 12px; margin-bottom: 10px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .order-card.paid { border-left-color: #16a34a; }
@@ -237,8 +240,14 @@
       <input type="text" id="customerName" class="name-input-box" placeholder="e.g. Dave S or Sarah Jones" oninput="this.classList.remove('input-error')">
     </div>
 
-    <h3>Menu</h3>
+    <h3>Menu Items</h3>
     <div id="menu-container"></div>
+
+    <!-- Tinted Extras Container -->
+    <div class="extras-section-container">
+      <div class="extras-section-title">Extras & Sides</div>
+      <div id="extras-menu-container"></div>
+    </div>
 
     <!-- Live Order Summary Preview -->
     <div class="customer-summary-box">
@@ -246,16 +255,6 @@
       <ul id="customer-summary-list" class="customer-summary-list">
         <p class="customer-summary-empty">Your order is currently empty. Tap + on any item above to add it to your order.</p>
       </ul>
-      <div id="customer-summary-totals" style="margin-top: 10px; border-top: 1px dashed #334155; padding-top: 8px; font-size: 0.85rem; display: none;">
-        <div style="display: flex; justify-content: space-between; color: #94a3b8;">
-          <span>Subtotal:</span>
-          <span id="summary-subtotal-val">£0.00</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; color: #34d399; margin-top: 2px;">
-          <span>Club Project Rounding:</span>
-          <span id="summary-kitty-val">+£0.00</span>
-        </div>
-      </div>
     </div>
 
     <div style="font-size: 1.3rem; font-weight: bold; margin: 12px 0 16px 0; text-align: right;">
@@ -280,21 +279,6 @@
       <div class="stat-box-secondary"><span>Orders</span><strong id="stat-orders">0</strong></div>
       <div class="stat-box-secondary"><span>Meals</span><strong id="stat-meals">0</strong></div>
       <div class="stat-box-secondary"><span>Extras</span><strong id="stat-extras">0</strong></div>
-    </div>
-
-    <!-- Persistent Club Kitty Tracker (Tap-to-Reveal) -->
-    <div class="kitty-card-wrapper">
-      <div id="kitty-default-view" class="kitty-box" onclick="revealKittyControls()">
-        <span>Club Project Kitty ⚙️</span>
-        <strong id="stat-kitty">£0.00</strong>
-      </div>
-      <div id="kitty-control-view" class="kitty-controls hidden">
-        <div class="btn-stack">
-          <button class="btn btn-secondary" onclick="editKitty()">Edit</button>
-          <button class="btn btn-danger" onclick="resetKitty()">Reset</button>
-        </div>
-        <button class="btn btn-secondary" style="padding: 12px 14px; font-weight: bold;" onclick="hideKittyControls()">✕</button>
-      </div>
     </div>
 
     <!-- MAIN CHIPPY ORDER PANEL -->
@@ -388,6 +372,7 @@
     { id: 'ketchup', posLabel: 'Ketchup', negLabel: 'No Ketchup' }
   ];
 
+  // Veggie Burger Modifier Fix: Separate list excluding cheese
   const veggieModifiersList = [
     { id: 'lettuce', posLabel: 'Lettuce', negLabel: 'No Lettuce' },
     { id: 'tomato', posLabel: 'Tomato', negLabel: 'No Tomato' },
@@ -406,45 +391,39 @@
   ];
 
   const menuConfig = [
-    // Chippy Classics (Category: classics, Open by default)
-    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true, category: 'classics', isExtra: false },
-    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true, chipsToggle: true, category: 'classics', isExtra: false },
+    { id: 'fish_chips', name: 'Fish & Chips', price: 9.50, variants: ['Cod', 'Haddock'], sv: true, chipsToggle: true, isExtra: false },
+    { id: 'sausage_chips', name: 'Jumbo Sausage & Chips', price: 5.00, variants: ['Plain', 'Battered'], sv: true, chipsToggle: true, isExtra: false },
+    { id: 'pie_chips', name: 'Pie & Chips', price: 6.50, variants: ['Chicken & Mushroom', 'Steak & Kidney', 'Beef & Onion'], sv: true, chipsToggle: true, isExtra: false },
+    { id: 'fishcake_chips', name: 'Fishcake & Chips', price: 5.00, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, veggieMods: true, sv: true, chipsToggle: true, isExtra: false },
+    
+    // New Kebab Additions
+    { id: 'shish_kebab', name: 'Shish Kebab in Pita', price: 7.00, kebabConfig: true, isExtra: false },
+    { id: 'doner_kebab_pita', name: 'Large Doner Kebab in Pita', price: 7.90, kebabConfig: true, isExtra: false },
+    { id: 'doner_chips', name: 'Doner Kebab on Chips', price: 7.90, kebabConfig: true, isExtra: false },
 
-    // Burgers (Category: burgers, Collapsed)
-    { id: 'cheeseburger_chips', name: '¼lb Cheese Burger & Chips', price: 7.30, burgerMods: true, sv: true, chipsToggle: true, category: 'burgers', isExtra: false },
-    { id: 'chickenburger_chips', name: 'Chicken Burger & Chips', price: 7.00, chickenMods: true, sv: true, chipsToggle: true, category: 'burgers', isExtra: false },
-    { id: 'veggie_burger_chips', name: 'Veggie Burger & Chips', price: 7.30, veggieMods: true, sv: true, chipsToggle: true, category: 'burgers', isExtra: false },
-
-    // Kebabs (Category: kebabs, Collapsed)
-    { id: 'shish_kebab', name: 'Shish Kebab in Pita', price: 7.00, kebabConfig: true, category: 'kebabs', isExtra: false },
-    { id: 'doner_kebab_pita', name: 'Large Doner Kebab in Pita', price: 7.90, kebabConfig: true, category: 'kebabs', isExtra: false },
-    { id: 'doner_chips', name: 'Doner Kebab on Chips', price: 7.90, kebabConfig: true, category: 'kebabs', isExtra: false },
-
-    // Extras (Category: extras, isExtra: true, Collapsed - Requires Main Meal)
-    { id: 'extra_sausage_plain', name: 'Extra: Jumbo Sausage (Plain)', price: 2.00, sv: false, category: 'extras', isExtra: true },
-    { id: 'extra_sausage_battered', name: 'Extra: Jumbo Sausage (Battered)', price: 2.00, sv: false, category: 'extras', isExtra: true },
-    { id: 'extra_fishcake', name: 'Extra: Fishcake', price: 2.00, sv: false, category: 'extras', isExtra: true },
-    { id: 'extra_pea_fritter', name: 'Extra: Pea Fritter', price: 2.00, sv: false, category: 'extras', isExtra: true },
-
-    // Sides & Extras (Category: sides, Open by default - can go with anything)
-    { id: 'extra_pineapple_fritter', name: 'Extra: Pineapple Fritter', price: 2.00, sv: false, category: 'sides', isExtra: false },
-    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false, category: 'sides', isExtra: false },
-    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false, category: 'sides', isExtra: false },
-    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false, category: 'sides', isExtra: false },
-    { id: 'extra_roll', name: 'Extra: Buttered Roll', price: 0.50, sv: false, category: 'sides', isExtra: false },
-    { id: 'extra_pickled_egg', name: 'Extra: Pickled Egg', price: 0.50, sv: false, category: 'sides', isExtra: false },
-    { id: 'extra_pickled_onion', name: 'Extra: Pickled Onion', price: 0.50, sv: false, category: 'sides', isExtra: false }
+    { id: 'scampi_chips', name: 'Scampi & Chips', price: 8.50, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'pea_fritter_chips', name: 'Pea Fritter & Chips', price: 5.00, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'chips', name: 'Chips', price: 2.50, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'cheesy_chips', name: 'Cheesy Chips', price: 3.50, sv: true, chipsToggle: true, isExtra: false },
+    { id: 'extra_sausage_plain', name: 'Extra: Jumbo Sausage (Plain)', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_sausage_battered', name: 'Extra: Jumbo Sausage (Battered)', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_fishcake', name: 'Extra: Fishcake', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_pea_fritter', name: 'Extra: Pea Fritter', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_pineapple_fritter', name: 'Extra: Pineapple Fritter', price: 2.00, sv: false, isExtra: true },
+    { id: 'curry_sauce', name: 'Extra: Curry Sauce', price: 2.00, sv: false, isExtra: true },
+    { id: 'mushy_peas', name: 'Extra: Mushy Peas', price: 2.00, sv: false, isExtra: true },
+    { id: 'baked_beans', name: 'Extra: Baked Beans', price: 2.00, sv: false, isExtra: true },
+    { id: 'extra_roll', name: 'Extra: Buttered Roll', price: 0.50, sv: false, isExtra: true },
+    { id: 'extra_pickled_egg', name: 'Extra: Pickled Egg', price: 0.50, sv: false, isExtra: true },
+    { id: 'extra_pickled_onion', name: 'Extra: Pickled Onion', price: 0.50, sv: false, isExtra: true }
   ];
 
   let formState = {};
   let currentOrders = {};
-  let sessionMeta = { mainLocked: false, lockTimestamp: null, manualKittyOffset: 0 };
+  let sessionMeta = { mainLocked: false, lockTimestamp: null };
   let editingOrderMeta = null;
 
   function createDefaultRow(item) {
@@ -482,156 +461,136 @@
   }
 
   function renderMenu() {
-    const container = document.getElementById('menu-container');
-    container.innerHTML = '';
+    const mainContainer = document.getElementById('menu-container');
+    const extrasContainer = document.getElementById('extras-menu-container');
+    mainContainer.innerHTML = '';
+    extrasContainer.innerHTML = '';
 
-    const categories = [
-      { key: 'classics', title: '🍟 Chippy Classics', open: true },
-      { key: 'burgers', title: '🍔 Burgers', open: false },
-      { key: 'kebabs', title: '🥙 Kebabs', open: false },
-      { key: 'extras', title: '🌭 Extras (Requires Main Meal)', open: false },
-      { key: 'sides', title: '🥣 Sides & Extras', open: true }
-    ];
+    menuConfig.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'menu-item';
 
-    categories.forEach(cat => {
-      const items = menuConfig.filter(i => i.category === cat.key);
-      if (items.length === 0) return;
+      let rowsHtml = '';
+      formState[item.id].forEach((row, idx) => {
+        let variantSelect = '';
+        if (item.variants) {
+          variantSelect = `
+            <select onchange="window.updateVariant('${item.id}', ${idx}, this.value)">
+              ${item.variants.map(v => `<option value="${v}" ${row.variant === v ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>
+          `;
+        }
 
-      const detailsEl = document.createElement('details');
-      detailsEl.className = 'menu-section';
-      if (cat.open) detailsEl.open = true;
+        const removeBtn = (formState[item.id].length > 1) 
+          ? `<button class="remove-row-btn" onclick="window.removeVariantRow('${item.id}', ${idx})">✕</button>` 
+          : '';
 
-      const summaryEl = document.createElement('summary');
-      summaryEl.innerText = cat.title;
-      detailsEl.appendChild(summaryEl);
+        let togglesTopHtml = '';
+        let togglesBottomHtml = '';
 
-      const contentEl = document.createElement('div');
-      contentEl.className = 'menu-section-content';
+        if (item.sv) {
+          togglesTopHtml += `
+            <div class="toggle-pill ${row.salt ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'salt', ${!row.salt})">
+              ${row.salt ? '✅ Salt' : '❌ No Salt'}
+            </div>
+            <div class="toggle-pill ${row.vinegar ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'vinegar', ${!row.vinegar})">
+              ${row.vinegar ? '✅ Vinegar' : '❌ No Vinegar'}
+            </div>
+          `;
+        }
 
-      items.forEach(item => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'menu-item';
+        if (item.chipsToggle) {
+          togglesTopHtml += `
+            <div class="chips-toggle-wrapper">
+              <span>Chips:</span>
+              <div class="chips-toggle-group">
+                <button type="button" class="chips-toggle-btn ${!row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, false)">Regular</button>
+                <button type="button" class="chips-toggle-btn ${row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, true)">Small</button>
+              </div>
+            </div>
+          `;
+        }
 
-        let rowsHtml = '';
-        formState[item.id].forEach((row, idx) => {
-          let variantSelect = '';
-          if (item.variants) {
-            variantSelect = `
-              <select onchange="window.updateVariant('${item.id}', ${idx}, this.value)">
-                ${item.variants.map(v => `<option value="${v}" ${row.variant === v ? 'selected' : ''}>${v}</option>`).join('')}
+        const modsList = item.burgerMods ? burgerModifiersList : (item.chickenMods ? chickenModifiersList : (item.veggieMods ? veggieModifiersList : null));
+
+        if (modsList && row.mods) {
+          modsList.forEach(m => {
+            const isVal = row.mods[m.id];
+            togglesBottomHtml += `
+              <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', ${!isVal})">
+                ${isVal ? '✅ ' + m.posLabel : '❌ ' + m.negLabel}
+              </div>
+            `;
+          });
+        }
+
+        if (item.kebabConfig) {
+          togglesTopHtml += `
+            <div style="width:100%; display:flex; gap:6px; margin-top:4px;">
+              <select onchange="window.updateKebabMeat('${item.id}', ${idx}, this.value)" style="flex:1; padding:6px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem;">
+                <option value="Lamb" ${row.meat === 'Lamb' ? 'selected' : ''}>Lamb</option>
+                <option value="Chicken" ${row.meat === 'Chicken' ? 'selected' : ''}>Chicken</option>
               </select>
-            `;
-          }
+              <select onchange="window.updateKebabSauce('${item.id}', ${idx}, this.value)" style="flex:1; padding:6px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem;">
+                ${chippySauces.map(s => `<option value="${s}" ${row.sauce === s ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+            </div>
+          `;
 
-          const removeBtn = (formState[item.id].length > 1) 
-            ? `<button class="remove-row-btn" onclick="window.removeVariantRow('${item.id}', ${idx})">✕</button>` 
-            : '';
-
-          let togglesTopHtml = '';
-          let togglesBottomHtml = '';
-
-          if (item.sv) {
-            togglesTopHtml += `
-              <div class="toggle-pill ${row.salt ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'salt', ${!row.salt})">
-                ${row.salt ? '✅ Salt' : '❌ No Salt'}
-              </div>
-              <div class="toggle-pill ${row.vinegar ? 'active' : 'inactive'}" onclick="window.updateToggle('${item.id}', ${idx}, 'vinegar', ${!row.vinegar})">
-                ${row.vinegar ? '✅ Vinegar' : '❌ No Vinegar'}
-              </div>
-            `;
-          }
-
-          if (item.chipsToggle) {
-            togglesTopHtml += `
-              <div class="chips-toggle-wrapper">
-                <span>Chips:</span>
-                <div class="chips-toggle-group">
-                  <button type="button" class="chips-toggle-btn ${!row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, false)">Regular</button>
-                  <button type="button" class="chips-toggle-btn ${row.smallChips ? 'active' : ''}" onclick="window.updateChipsSize('${item.id}', ${idx}, true)">Small</button>
-                </div>
-              </div>
-            `;
-          }
-
-          const modsList = item.burgerMods ? burgerModifiersList : (item.chickenMods ? chickenModifiersList : (item.veggieMods ? veggieModifiersList : null));
-
-          if (modsList && row.mods) {
-            modsList.forEach(m => {
-              const isVal = row.mods[m.id];
+          if (row.salads) {
+            kebabSalads.forEach(s => {
+              const isVal = row.salads[s.id];
               togglesBottomHtml += `
-                <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateBurgerMod('${item.id}', ${idx}, '${m.id}', ${!isVal})">
-                  ${isVal ? '✅ ' + m.posLabel : '❌ ' + m.negLabel}
+                <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateKebabSalad('${item.id}', ${idx}, '${s.id}', ${!isVal})">
+                  ${isVal ? '✅ ' + s.posLabel : '❌ ' + s.negLabel}
                 </div>
               `;
             });
           }
+        }
 
-          if (item.kebabConfig) {
-            togglesTopHtml += `
-              <div style="width:100%; display:flex; gap:6px; margin-top:4px;">
-                <select onchange="window.updateKebabMeat('${item.id}', ${idx}, this.value)" style="flex:1; padding:6px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem;">
-                  <option value="Lamb" ${row.meat === 'Lamb' ? 'selected' : ''}>Lamb</option>
-                  <option value="Chicken" ${row.meat === 'Chicken' ? 'selected' : ''}>Chicken</option>
-                </select>
-                <select onchange="window.updateKebabSauce('${item.id}', ${idx}, this.value)" style="flex:1; padding:6px; border-radius:6px; border:1px solid #ccc; font-size:0.85rem;">
-                  ${chippySauces.map(s => `<option value="${s}" ${row.sauce === s ? 'selected' : ''}>${s}</option>`).join('')}
-                </select>
+        let combinedToggles = '';
+        if (togglesTopHtml) {
+          combinedToggles += `<div class="toggles-box">${togglesTopHtml}</div>`;
+        }
+        if (togglesBottomHtml) {
+          combinedToggles += `<div class="mods-row">${togglesBottomHtml}</div>`;
+        }
+
+        rowsHtml += `
+          <div class="item-row">
+            <div class="item-controls">
+              ${variantSelect}
+              <div class="qty-controls">
+                <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, -1)">-</button>
+                <span class="qty-val">${row.qty}</span>
+                <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, 1)">+</button>
               </div>
-            `;
-
-            if (row.salads) {
-              kebabSalads.forEach(s => {
-                const isVal = row.salads[s.id];
-                togglesBottomHtml += `
-                  <div class="toggle-pill ${isVal ? 'active' : 'inactive'}" onclick="window.updateKebabSalad('${item.id}', ${idx}, '${s.id}', ${!isVal})">
-                    ${isVal ? '✅ ' + s.posLabel : '❌ ' + s.negLabel}
-                  </div>
-                `;
-              });
-            }
-          }
-
-          let combinedToggles = '';
-          if (togglesTopHtml) {
-            combinedToggles += `<div class="toggles-box">${togglesTopHtml}</div>`;
-          }
-          if (togglesBottomHtml) {
-            combinedToggles += `<div class="mods-row">${togglesBottomHtml}</div>`;
-          }
-
-          rowsHtml += `
-            <div class="item-row">
-              <div class="item-controls">
-                ${variantSelect}
-                <div class="qty-controls">
-                  <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, -1)">-</button>
-                  <span class="qty-val">${row.qty}</span>
-                  <button class="qty-btn" onclick="window.changeQty('${item.id}', ${idx}, 1)">+</button>
-                </div>
-                ${removeBtn}
-              </div>
-              ${combinedToggles}
+              ${removeBtn}
             </div>
-          `;
-        });
-
-        const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods || item.veggieMods || item.kebabConfig || item.chipsToggle)
-          ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another ${item.name} (Different Options)</button>` 
-          : '';
-
-        itemEl.innerHTML = `
-          <div class="item-header">
-            <span>${item.name}</span>
-            <span class="item-price">£${item.price.toFixed(2)}</span>
+            ${combinedToggles}
           </div>
-          ${rowsHtml}
-          ${addRowBtn}
         `;
-        contentEl.appendChild(itemEl);
       });
 
-      detailsEl.appendChild(contentEl);
-      container.appendChild(detailsEl);
+      const addRowBtn = (item.variants || item.sv || item.burgerMods || item.chickenMods || item.veggieMods || item.kebabConfig || item.chipsToggle)
+        ? `<button class="add-row-btn" onclick="window.addVariantRow('${item.id}')">+ Add Another ${item.name} (Different Options)</button>` 
+        : '';
+
+      itemEl.innerHTML = `
+        <div class="item-header">
+          <span>${item.name}</span>
+          <span class="item-price">£${item.price.toFixed(2)}</span>
+        </div>
+        ${rowsHtml}
+        ${addRowBtn}
+      `;
+
+      if (item.isExtra) {
+        extrasContainer.appendChild(itemEl);
+      } else {
+        mainContainer.appendChild(itemEl);
+      }
     });
   }
 
@@ -706,27 +665,15 @@
     calculateTotal();
   };
 
-  function calculateSmartRounding(subtotal) {
-    if (subtotal <= 0) return { total: 0, contribution: 0 };
-    let minTarget = subtotal + 0.50;
-    let target = Math.ceil(minTarget * 2) / 2;
-    let contrib = target - subtotal;
-    if (contrib < 0.50) {
-      target += 0.50;
-      contrib = target - subtotal;
-    }
-    return { total: target, contribution: contrib };
-  }
-
   function calculateTotal() {
-    let subtotal = 0;
+    let total = 0;
     const summaryItems = [];
 
     menuConfig.forEach(item => {
       formState[item.id].forEach(row => {
         if (row.qty > 0) {
           const rowTotal = row.qty * item.price;
-          subtotal += rowTotal;
+          total += rowTotal;
           const optStr = buildOptionsString(item, row);
           summaryItems.push({
             qty: row.qty,
@@ -738,21 +685,17 @@
       });
     });
 
-    const { total, contribution } = calculateSmartRounding(subtotal);
-
     document.getElementById('order-total').innerText = total.toFixed(2);
-    renderCustomerSummary(summaryItems, subtotal, contribution, total);
-    return { subtotal, total, contribution };
+    renderCustomerSummary(summaryItems);
+    return total;
   }
 
-  function renderCustomerSummary(items, subtotal, contribution, total) {
+  function renderCustomerSummary(items) {
     const listEl = document.getElementById('customer-summary-list');
-    const totalsBox = document.getElementById('customer-summary-totals');
     listEl.innerHTML = '';
 
     if (items.length === 0) {
       listEl.innerHTML = '<p class="customer-summary-empty">Your order is currently empty. Tap + on any item above to add it to your order.</p>';
-      totalsBox.style.display = 'none';
       return;
     }
 
@@ -765,10 +708,6 @@
       `;
       listEl.appendChild(li);
     });
-
-    totalsBox.style.display = 'block';
-    document.getElementById('summary-subtotal-val').innerText = `£${subtotal.toFixed(2)}`;
-    document.getElementById('summary-kitty-val').innerText = `+£${contribution.toFixed(2)}`;
   }
 
   function buildOptionsString(itemConfig, row) {
@@ -819,27 +758,6 @@
       return;
     }
 
-    // --- MAIN MEAL VALIDATION CHECK ---
-    let hasMainMeal = false;
-    let hasExtras = false;
-
-    menuConfig.forEach(item => {
-      formState[item.id].forEach(row => {
-        if (row.qty > 0) {
-          if (item.isExtra) {
-            hasExtras = true;
-          } else if (item.id !== 'chips' && item.id !== 'cheesy_chips') {
-            hasMainMeal = true;
-          }
-        }
-      });
-    });
-
-    if (hasExtras && !hasMainMeal) {
-      alert("Standalone extras can only be ordered alongside a main meal! Please select a main dish (such as a Burger, Kebab, Fish, Pie, or Chippy Classic) before submitting standalone extras.");
-      return;
-    }
-
     const aggregatedItems = {};
 
     menuConfig.forEach(item => {
@@ -867,7 +785,7 @@
 
     const isLockedNow = Boolean(sessionMeta && sessionMeta.mainLocked);
 
-    const { subtotal, total, contribution } = calculateTotal();
+    const total = calculateTotal();
     let finalStatus = 'unpaid';
     let paidAmount = 0;
     let dueAmount = total;
@@ -895,8 +813,6 @@
     const orderData = {
       customerName: name,
       items: items,
-      subtotal: subtotal,
-      kittyContribution: contribution,
       total: total,
       status: finalStatus,
       paidAmount: paidAmount,
@@ -973,7 +889,7 @@
 
   // Realtime Listeners
   onValue(metaRef, (snapshot) => {
-    sessionMeta = snapshot.val() || { mainLocked: false, lockTimestamp: null, manualKittyOffset: 0 };
+    sessionMeta = snapshot.val() || { mainLocked: false, lockTimestamp: null };
     
     const warningBanner = document.getElementById('order-warning-banner');
     if (sessionMeta.mainLocked) {
@@ -983,27 +899,13 @@
     }
 
     renderSummaries();
-    updateClubKittyDisplay();
   });
 
   onValue(ordersRef, (snapshot) => {
     currentOrders = snapshot.val() || {};
     renderOrganiserView();
     renderSummaries();
-    updateClubKittyDisplay();
   });
-
-  function updateClubKittyDisplay() {
-    let sumContrib = 0;
-    if (currentOrders) {
-      Object.values(currentOrders).forEach(o => {
-        sumContrib += (o.kittyContribution || 0);
-      });
-    }
-    const offset = sessionMeta.manualKittyOffset || 0;
-    const finalKitty = Math.max(0, sumContrib + offset);
-    document.getElementById('stat-kitty').innerText = `£${finalKitty.toFixed(2)}`;
-  }
 
   // Target ONLY negatives, dropdown variants, meat choices, and small chips for WhatsApp bolding
   function formatOptionsForWhatsApp(optionsStr) {
@@ -1102,6 +1004,7 @@
         const matchedKeys = activeKeys.filter(k => namesArray.includes(groupedTotals[k].name));
         if (matchedKeys.length === 0) return null;
         
+        // Variant-first sort order mapping to cluster variants together (e.g. Plain then Battered, Cod then Haddock, Lamb then Chicken)
         matchedKeys.sort((a, b) => {
           const optA = groupedTotals[a].options || '';
           const optB = groupedTotals[b].options || '';
@@ -1208,13 +1111,15 @@
     const phoneParam = CHIPPY_PHONE ? `phone=${CHIPPY_PHONE}&` : '';
     window.open(`https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`, '_blank');
 
-    set(ref(db, 'session_meta/mainLocked'), true);
-    set(ref(db, 'session_meta/lockTimestamp'), Date.now());
+    set(metaRef, {
+      mainLocked: true,
+      lockTimestamp: Date.now()
+    }).catch(err => console.error("Background sync error:", err));
   };
 
   window.unlockMainOrder = function() {
     if (confirm('Unlock main order? Note: Late orders will remain tagged as late add-ons.')) {
-      update(metaRef, { mainLocked: false, lockTimestamp: null });
+      set(metaRef, { mainLocked: false, lockTimestamp: null });
     }
   };
 
@@ -1271,28 +1176,17 @@
 
       const itemsSummary = order.items.map(i => `${i.qty}x ${i.name}${i.options ? ' (' + i.options + ')' : ''}`).join('<br>');
 
-      let timeDateStr = '';
-      if (order.timestamp) {
-        const d = new Date(order.timestamp);
-        const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const datePart = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-        timeDateStr = `${timePart} ${datePart}`;
-      }
-
       let statusBadge = `<span class="badge badge-unpaid">UNPAID (£${due.toFixed(2)})</span>`;
       if (order.status === 'paid') statusBadge = `<span class="badge badge-paid">PAID</span>`;
       if (order.status === 'partial_due') statusBadge = `<span class="badge badge-unpaid">ADDITIONAL £${due.toFixed(2)} DUE</span>`;
       if (order.status === 'refund_due') statusBadge = `<span class="badge badge-refund">REFUND DUE (£${refund.toFixed(2)})</span>`;
 
       card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            ${statusBadge}
-            ${order.isLate ? '<span class="badge" style="background:#ffedd5; color:#c2410c;">LATE ADD-ON</span>' : ''}
-            ${order.handedOut ? '<span class="badge" style="background:#e2e8f0; color:#475569;">HANDED OUT</span>' : ''}
-            <strong style="font-size: 1.1rem; display: block; margin-top: 4px;">${order.customerName} - £${order.total.toFixed(2)}</strong>
-          </div>
-          ${timeDateStr ? `<span style="font-size: 0.75rem; color: #64748b; font-weight: 600; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">${timeDateStr}</span>` : ''}
+        <div>
+          ${statusBadge}
+          ${order.isLate ? '<span class="badge" style="background:#ffedd5; color:#c2410c;">LATE ADD-ON</span>' : ''}
+          ${order.handedOut ? '<span class="badge" style="background:#e2e8f0; color:#475569;">HANDED OUT</span>' : ''}
+          <strong style="font-size: 1.1rem; display: block;">${order.customerName} - £${order.total.toFixed(2)}</strong>
         </div>
         <div style="margin: 8px 0; font-size: 0.95rem;">${itemsSummary}</div>
         <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;">
@@ -1432,42 +1326,6 @@
       calculateTotal();
       switchTab('order');
     }
-  };
-
-  // Kitty Tap-to-Reveal Logic
-  window.revealKittyControls = function() {
-    document.getElementById('kitty-default-view').classList.add('hidden');
-    document.getElementById('kitty-control-view').classList.remove('hidden');
-  };
-
-  window.hideKittyControls = function() {
-    document.getElementById('kitty-control-view').classList.add('hidden');
-    document.getElementById('kitty-default-view').classList.remove('hidden');
-  };
-
-  window.editKitty = function() {
-    let sumContrib = 0;
-    if (currentOrders) {
-      Object.values(currentOrders).forEach(o => { sumContrib += (o.kittyContribution || 0); });
-    }
-    const currentKitty = sumContrib + (sessionMeta.manualKittyOffset || 0);
-    const val = prompt("Enter new Club Kitty balance (£):", currentKitty.toFixed(2));
-    if (val !== null && !isNaN(val)) {
-      const newOffset = parseFloat(val) - sumContrib;
-      set(ref(db, 'session_meta/manualKittyOffset'), newOffset);
-    }
-    hideKittyControls();
-  };
-
-  window.resetKitty = function() {
-    if (confirm("Are you sure you want to reset the Club Kitty to £0.00?")) {
-      let sumContrib = 0;
-      if (currentOrders) {
-        Object.values(currentOrders).forEach(o => { sumContrib += (o.kittyContribution || 0); });
-      }
-      set(ref(db, 'session_meta/manualKittyOffset'), -sumContrib);
-    }
-    hideKittyControls();
   };
 
   window.endFridaySession = function() {
